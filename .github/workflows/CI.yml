@@ -38,7 +38,7 @@ jobs:
         /Library/Frameworks/Xamarin.iOS.framework/Versions/Current/bin/mtouch --version
         ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/
     - name: run
-      run: make run
+      run: ./configure.sh && make run
 
   macOS--mono-only:
     runs-on: macOS-13
@@ -60,7 +60,7 @@ jobs:
         /Library/Frameworks/Xamarin.iOS.framework/Versions/Current/bin/mtouch --version
         ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/
     - name: run
-      run: make run
+      run: ./configure.sh && make run
 
   macOS--dotnet6-only:
     runs-on: macOS-13
@@ -75,7 +75,7 @@ jobs:
     - name: HACK to emulate mono uninstall
       run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
     - name: run
-      run: make run
+      run: configure.sh && make run
 
   windows--dotnet6-and-legacyFramework:
     runs-on: windows-latest
@@ -88,7 +88,7 @@ jobs:
       with:
         dotnet-version: '6.0.113'
     - name: run
-      run: .\make.bat run
+      run: .\configure.bat && .\make.bat run
 
   windows--legacyFramework-only:
     runs-on: windows-2022
@@ -99,7 +99,7 @@ jobs:
     - name: HACK to emulate dotnet uninstall
       run: del $(where.exe dotnet)
     - name: run
-      run: .\make.bat run
+      run: .\configure.bat && .\make.bat run
 
   windows--dotnet6-only:
     runs-on: windows-latest
@@ -114,7 +114,7 @@ jobs:
     - name: HACK to emulate legacy .NETFramework uninstall
       run: del $(& "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -find MSBuild\\**\\Bin\\MSBuild.exe)
     - name: run
-      run: .\make.bat run
+      run: .\configure.bat && .\make.bat run
 
   linux22-github--dotnet-and-mono:
     runs-on: ubuntu-22.04
@@ -127,7 +127,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: run
-      run: make run
+      run: ./configure.sh && make run
 
   linux22-github--dotnet-and-newmono:
     runs-on: ubuntu-22.04
@@ -142,7 +142,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: run
-      run: make run
+      run: ./configure.sh && make run
 
   linux22-vanilla--stockmono-only:
     runs-on: ubuntu-22.04
@@ -166,7 +166,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: run
-      run: make run
+      run: ./configure.sh && make run
 
   linux22-vanilla--stockdotnet6-only:
     runs-on: ubuntu-22.04
@@ -188,7 +188,7 @@ jobs:
       run: git config --global --add safe.directory '*'
 
     - name: run
-      run: make run
+      run: ./configure.sh && make run
 
   linux22-vanilla--stockdotnet6-and-newmono:
     runs-on: ubuntu-22.04
@@ -212,7 +212,7 @@ jobs:
       run: git config --global --add safe.directory '*'
 
     - name: run
-      run: make run
+      run: ./configure.sh && make run
 
   linux22-vanilla--stockdotnet6-and-stockmono:
     runs-on: ubuntu-22.04
@@ -234,7 +234,7 @@ jobs:
       run: git config --global --add safe.directory '*'
 
     - name: run
-      run: make run
+      run: ./configure.sh && make run
 
   linux22-vanilla--newmono-only:
     runs-on: ubuntu-22.04
@@ -260,4 +260,4 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: run
-      run: make run
+      run: ./configure.sh && make run

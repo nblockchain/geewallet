@@ -48,6 +48,77 @@ let rec private GatherTarget (args: string list, targetSet: Option<string>): Opt
             failwith "only one target can be passed to make"
         GatherTarget (tail, Some (head))
 
+let buildConfigFileName = "build.config"
+let buildConfigContents =
+    let buildConfig =
+        Path.Combine (FsxHelper.ScriptsDir.FullName, buildConfigFileName)
+        |> FileInfo
+    if not (buildConfig.Exists) then
+        let configureLaunch =
+            match Misc.GuessPlatform() with
+            | Misc.Platform.Windows -> ".\\configure.bat"
+            | _ -> "./configure.sh"
+        Console.Error.WriteLine (sprintf "ERROR: configure hasn't been run yet, run %s first"
+                                         configureLaunch)
+        Environment.Exit 1
+
+    let configFileLines = File.ReadAllLines buildConfig.FullName
+    let skipBlankLines line = not <| String.IsNullOrWhiteSpace line
+    let splitLineIntoKeyValueTuple (line:string) =
+        let pair = line.Split([|'='|], StringSplitOptions.RemoveEmptyEntries)
+        if pair.Length <> 2 then
+            failwithf "All lines in '%s' must conform to key=value format, but got: '%s'. All lines: \n%s"
+                      buildConfigFileName
+                      line
+                      (File.ReadAllText buildConfig.FullName)
+        pair.[0], pair.[1]
+
+    let buildConfigContents =
+        configFileLines
+        |> Array.filter skipBlankLines
+        |> Array.map splitLineIntoKeyValueTuple
+        |> Map.ofArray
+    buildConfigContents
+
+let GetOrExplain key map =
+    match map |> Map.tryFind key with
+    | Some k -> k
+    | None   -> failwithf "No entry exists in %s with a key '%s'."
+                          buildConfigFileName key
+
+let prefix = buildConfigContents |> GetOrExplain "Prefix"
+let libPrefixDir = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
+let binPrefixDir = DirectoryInfo (Path.Combine (prefix, "bin"))
+
+let launcherScriptFile =
+    Path.Combine (FsxHelper.ScriptsDir.FullName, "bin", UNIX_NAME)
+    |> FileInfo
+let mainBinariesDir binaryConfig =
+    Path.Combine (
+        FsxHelper.RootDir.FullName,
+        "src",
+        DEFAULT_FRONTEND,
+        "bin",
+        binaryConfig.ToString())
+    |> DirectoryInfo
+
+let wrapperScript = """#!/usr/bin/env bash
+set -eo pipefail
+
+if [[ $SNAP ]]; then
+    PKG_DIR=$SNAP/usr
+    export MONO_PATH=$PKG_DIR/lib/mono/4.5
+    export MONO_CONFIG=$SNAP/etc/mono/config
+    export MONO_CFG_DIR=$SNAP/etc
+    export MONO_REGISTRY_PATH=~/.mono/registry
+    export MONO_GAC_PREFIX=$PKG_DIR/lib/mono/gac/
+fi
+
+DIR_OF_THIS_SCRIPT=$(dirname "$(realpath "$0")")
+FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
+exec mono "$FRONTEND_PATH" "$@"
+"""
+
 #if LEGACY_FRAMEWORK
 let PrintNugetVersion () =
     if not (FsxHelper.NugetExe.Exists) then

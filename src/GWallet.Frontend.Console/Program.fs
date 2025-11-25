@@ -510,15 +510,4 @@ let UpdateServersStats () =
 
 [<EntryPoint>]
 let main argv =
-    match argv.Length with
-    | 0 ->
-        NormalStartWithNoParameters()
-    | 1 when argv.[0] = "--version" ->
-        Console.WriteLine (sprintf "geewallet v%s" VersionHelper.CURRENT_VERSION)
-        0
-    | 1 when argv.[0] = "--update-servers-file" ->
-        UpdateServersFile()
-    | 1 when argv.[0] = "--update-servers-stats" ->
-        UpdateServersStats()
-    | _ ->
-        failwith "Arguments not recognized"
+    Console.WriteLine "hello"
