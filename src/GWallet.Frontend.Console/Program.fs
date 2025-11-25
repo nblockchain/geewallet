@@ -522,8 +522,8 @@ let main argv =
         let hello = sprintf "appData= %s ; userProfile= %s ; myDocs= %s ; personal= %s" appData userProfile myDocs personal
 
         Console.WriteLine "hello"
-        let helloFile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), hello) |> FileInfo
-        File.WriteAllText(helloFile.FullName, "hallo")
+        let helloFile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "hello.txt") |> FileInfo
+        File.WriteAllText(helloFile.FullName, hello)
         Console.WriteLine "bye"
         0
     | _ ->
