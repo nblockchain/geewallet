@@ -350,7 +350,7 @@ jobs:
       run: git config --global --add safe.directory '*'
 
     - name: run
-      run: ./configure.sh && make run
+      run: ./configure.sh && DOTNET_ROLL_FORWARD=LatestMajor make run
 
   linux24-vanilla--stockdotnet8-and-newmono:
     runs-on: ubuntu-24.04
@@ -374,7 +374,7 @@ jobs:
       run: git config --global --add safe.directory '*'
 
     - name: run
-      run: ./configure.sh && make run
+      run: ./configure.sh && DOTNET_ROLL_FORWARD=LatestMajor make run
 
   linux24-vanilla--stockdotnet8-and-stockmono:
     runs-on: ubuntu-24.04
@@ -396,7 +396,7 @@ jobs:
       run: git config --global --add safe.directory '*'
 
     - name: run
-      run: ./configure.sh && make run
+      run: ./configure.sh && DOTNET_ROLL_FORWARD=LatestMajor make run
 
   linux24-vanilla--newmono-only:
     runs-on: ubuntu-24.04
