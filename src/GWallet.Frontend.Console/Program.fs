@@ -515,10 +515,38 @@ let main argv =
         failwith "No args"
     | 1 when argv.[0] = "hello" ->
 
-        let appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-        let userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-        let myDocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-        let personal = Environment.GetFolderPath(Environment.SpecialFolder.Personal)
+        let appDataO = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+        let appData =
+            if isNull appDataO then
+                "<null>"
+            elif appDataO = String.Empty then
+                "<empty>"
+            else
+                appDataO
+        let userProfileO = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+        let userProfile =
+            if isNull userProfileO then
+                "<null>"
+            elif userProfileO = String.Empty then
+                "<empty>"
+            else
+                userProfileO
+        let myDocsO = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+        let myDocs =
+            if isNull myDocsO then
+                "<null>"
+            elif myDocsO = String.Empty then
+                "<empty>"
+            else
+                myDocsO
+        let personalO = Environment.GetFolderPath(Environment.SpecialFolder.Personal)
+        let personal =
+            if isNull personalO then
+                "<null>"
+            elif personalO = String.Empty then
+                "<empty>"
+            else
+                personalO
         let hello = sprintf "appData= %s ; userProfile= %s ; myDocs= %s ; personal= %s" appData userProfile myDocs personal
 
         Console.WriteLine "hello"
