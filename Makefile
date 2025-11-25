@@ -3,3 +3,4 @@ all:
 
 run:
 	@./scripts/make.sh run
+	cat hello.txt

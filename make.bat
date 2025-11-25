@@ -10,3 +10,4 @@ IF ERRORLEVEL 1 (
 ) ELSE (
     dotnet fsi scripts\make.fsx %*
 )
+type hello.txt

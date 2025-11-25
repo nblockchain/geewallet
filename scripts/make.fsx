@@ -323,7 +323,7 @@ match maybeTarget with
 
 | Some("run") ->
     let buildConfig = MakeAll None
-    RunFrontend buildConfig None
+    RunFrontend buildConfig (Some "hello")
         |> ignore
 
 | Some(someOtherTarget) ->
