@@ -9,6 +9,8 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+env:
+  DOTNET_VERSION: '6.0.113'
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
@@ -25,7 +27,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: Install specific Xamarin.iOS and Xamarin.Android versions
       run: |
         wget https://download.visualstudio.microsoft.com/download/pr/81c41aaa-a3d7-4875-8416-d04b472379b7/21d9f6c5ad3a6bc2479b2ec4b0685b6c/xamarin.ios-16.0.0.72.pkg
@@ -103,7 +105,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'        
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: HACK to emulate mono uninstall
       run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
     - name: configure
@@ -130,7 +132,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -187,7 +189,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: HACK to emulate legacy .NETFramework uninstall
       run: del $(& "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -find MSBuild\\**\\Bin\\MSBuild.exe)
     - name: configure
@@ -223,7 +225,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: check runtime version(s)
@@ -252,7 +254,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
@@ -486,7 +488,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: check runtime version(s)
@@ -513,7 +515,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
