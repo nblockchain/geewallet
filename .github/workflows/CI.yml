@@ -302,10 +302,10 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux24-vanilla--stockdotnet6-only:
-    runs-on: ubuntu-24.04
+  linux22-vanilla--stockdotnet6-only:
+    runs-on: ubuntu-22.04
     container:
-      image: "ubuntu:24.04"
+      image: "ubuntu:22.04"
     steps:
     - uses: actions/checkout@v1
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
@@ -344,10 +344,10 @@ jobs:
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux24-vanilla--stockdotnet6-and-newmono:
-    runs-on: ubuntu-24.04
+  linux22-vanilla--stockdotnet6-and-newmono:
+    runs-on: ubuntu-22.04
     container:
-      image: "ubuntu:24.04"
+      image: "ubuntu:22.04"
     steps:
     - uses: actions/checkout@v1
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
@@ -388,10 +388,10 @@ jobs:
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux24-vanilla--stockdotnet6-and-stockmono:
-    runs-on: ubuntu-24.04
+  linux22-vanilla--stockdotnet6-and-stockmono:
+    runs-on: ubuntu-22.04
     container:
-      image: "ubuntu:24.04"
+      image: "ubuntu:22.04"
     steps:
     - uses: actions/checkout@v1
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
@@ -602,9 +602,9 @@ jobs:
     - linux24-github--dotnet-and-newmono
     - linux24-vanilla--stockmono-only
     - linux24-vanilla--newmono-only
-    - linux24-vanilla--stockdotnet6-only
-    - linux24-vanilla--stockdotnet6-and-stockmono
-    - linux24-vanilla--stockdotnet6-and-newmono
+    - linux22-vanilla--stockdotnet6-only
+    - linux22-vanilla--stockdotnet6-and-stockmono
+    - linux22-vanilla--stockdotnet6-and-newmono
     - linux22-github--dotnet-and-mono
     - linux22-github--dotnet-and-newmono
     - linux22-vanilla--stockmono-only
