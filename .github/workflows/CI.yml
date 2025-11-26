@@ -220,6 +220,10 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: false
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '6.0.113'
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: check runtime version(s)
@@ -245,6 +249,10 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: false
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '6.0.113'
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
@@ -475,6 +483,10 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: false
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '6.0.113'
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: check runtime version(s)
@@ -498,6 +510,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '6.0.113'
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
