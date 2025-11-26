@@ -9,8 +9,6 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
-env:
-  DOTNET_VERSION: '8.0'
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
@@ -18,16 +16,16 @@ env:
 # (msbuild bug?)
 
 jobs:
-  macOS--dotnet-and-mono:
+  macOS--dotnet6-and-mono:
     runs-on: macOS-13
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v5
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-version: '6.0.113'
     - name: Install specific Xamarin.iOS and Xamarin.Android versions
       run: |
         wget https://download.visualstudio.microsoft.com/download/pr/81c41aaa-a3d7-4875-8416-d04b472379b7/21d9f6c5ad3a6bc2479b2ec4b0685b6c/xamarin.ios-16.0.0.72.pkg
@@ -59,9 +57,6 @@ jobs:
 
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
-
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -99,16 +94,16 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  macOS--dotnet-only:
+  macOS--dotnet6-only:
     runs-on: macOS-13
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v5
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}        
+        dotnet-version: '6.0.113'        
     - name: HACK to emulate mono uninstall
       run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
     - name: configure
@@ -126,16 +121,16 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  windows--dotnet-and-legacyFramework:
+  windows--dotnet6-and-legacyFramework:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v5
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-version: '6.0.113'
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -157,9 +152,6 @@ jobs:
 
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
-
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -186,16 +178,16 @@ jobs:
     - name: integration tests
       run: .\make update-servers
 
-  windows--dotnet-only:
+  windows--dotnet6-only:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v5
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-version: '6.0.113'
     - name: HACK to emulate legacy .NETFramework uninstall
       run: del $(& "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -find MSBuild\\**\\Bin\\MSBuild.exe)
     - name: configure
@@ -219,9 +211,6 @@ jobs:
 
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
-
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -313,7 +302,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux24-vanilla--stockdotnet-only:
+  linux24-vanilla--stockdotnet6-only:
     runs-on: ubuntu-24.04
     container:
       image: "ubuntu:24.04"
@@ -326,7 +315,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet8
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -353,12 +342,9 @@ jobs:
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
 
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
-
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux24-vanilla--stockdotnet-and-newmono:
+  linux24-vanilla--stockdotnet6-and-newmono:
     runs-on: ubuntu-24.04
     container:
       image: "ubuntu:24.04"
@@ -371,7 +357,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet8
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -400,12 +386,9 @@ jobs:
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
 
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
-
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux24-vanilla--stockdotnet-and-stockmono:
+  linux24-vanilla--stockdotnet6-and-stockmono:
     runs-on: ubuntu-24.04
     container:
       image: "ubuntu:24.04"
@@ -418,7 +401,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet8 mono-xbuild
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6 mono-xbuild
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -444,9 +427,6 @@ jobs:
 
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
-
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -622,19 +602,19 @@ jobs:
     - linux24-github--dotnet-and-newmono
     - linux24-vanilla--stockmono-only
     - linux24-vanilla--newmono-only
-    - linux24-vanilla--stockdotnet-only
-    - linux24-vanilla--stockdotnet-and-stockmono
-    - linux24-vanilla--stockdotnet-and-newmono
+    - linux24-vanilla--stockdotnet6-only
+    - linux24-vanilla--stockdotnet6-and-stockmono
+    - linux24-vanilla--stockdotnet6-and-newmono
     - linux22-github--dotnet-and-mono
     - linux22-github--dotnet-and-newmono
     - linux22-vanilla--stockmono-only
     - linux22-vanilla--newmono-only
-    - windows--dotnet-and-legacyFramework
+    - windows--dotnet6-and-legacyFramework
     - windows--legacyFramework-only
-    - windows--dotnet-only
-    - macOS--dotnet-and-mono
+    - windows--dotnet6-only
+    - macOS--dotnet6-and-mono
     - macOS--mono-only
-    - macOS--dotnet-only
+    - macOS--dotnet6-only
 
     steps:
     - uses: actions/checkout@v1
