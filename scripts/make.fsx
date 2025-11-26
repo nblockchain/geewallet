@@ -34,9 +34,6 @@ let UNIX_NAME = "gwallet"
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
 let BACKEND = "GWallet.Backend"
 
-// format: X.Y (can't be X.Y.Z here
-let DOTNET_VERSION = "8.0"
-
 type BinaryConfig =
     | Debug
     | Release
@@ -273,8 +270,7 @@ let GetPathToFrontendBinariesDir (binaryConfig: BinaryConfig) =
 #if LEGACY_FRAMEWORK
     Path.Combine (FsxHelper.RootDir.FullName, "src", DEFAULT_FRONTEND, "bin", binaryConfig.ToString())
 #else
-    Path.Combine (FsxHelper.RootDir.FullName, "src", DEFAULT_FRONTEND, "bin", binaryConfig.ToString(), 
-                  sprintf "net%s" DOTNET_VERSION)
+    Path.Combine (FsxHelper.RootDir.FullName, "src", DEFAULT_FRONTEND, "bin", binaryConfig.ToString(), "net6.0")
 #endif
 
 let GetPathToBackend () =

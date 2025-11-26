@@ -8,4 +8,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
   </PropertyGroup>
+  <PropertyGroup>
+    <WarningsNotAsErrors>NETSDK1138</WarningsNotAsErrors>
+  </PropertyGroup>
 </Project>
