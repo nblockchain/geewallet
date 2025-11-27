@@ -125,7 +125,7 @@ let buildTool, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply =
                                     // xbuild alone cannot build .NETStandard2.0 libs (Backend and XF are)
                                     true
                                 | _, _, _ ->
-                                    Console.Write "checking for GTK (libs)..."
+                                    Console.Write "checking for GTK (libs)... "
                                     let gtkLibsPresent = FsxHelper.AreGtkLibsPresent Echo.Off
 
                                     if gtkLibsPresent then
