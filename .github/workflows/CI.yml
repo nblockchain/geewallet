@@ -10,6 +10,8 @@ on:
     - cron: "0 0 * * *"
 
 env:
+  DOTNET_VERSION: '8.0'
+
   # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
   FSXC_VERSION: 0.5.9.1
 
@@ -19,16 +21,16 @@ env:
 # (msbuild bug?)
 
 jobs:
-  macOS--dotnet6-and-mono:
+  macOS--dotnet-and-mono:
     runs-on: macOS-13
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
-      uses: actions/setup-dotnet@v1.7.2
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: Install specific Xamarin.iOS and Xamarin.Android versions
       run: |
         wget https://download.visualstudio.microsoft.com/download/pr/81c41aaa-a3d7-4875-8416-d04b472379b7/21d9f6c5ad3a6bc2479b2ec4b0685b6c/xamarin.ios-16.0.0.72.pkg
@@ -59,6 +61,9 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -96,16 +101,16 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  macOS--dotnet6-only:
+  macOS--dotnet-only:
     runs-on: macOS-13
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
-      uses: actions/setup-dotnet@v1.7.2
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: '6.0.113'        
+        dotnet-version: ${{ env.DOTNET_VERSION }}        
     - name: HACK to emulate mono uninstall
       run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
     - name: configure
@@ -128,18 +133,21 @@ jobs:
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  windows--dotnet6-and-legacyFramework:
+  windows--dotnet-and-legacyFramework:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
-      uses: actions/setup-dotnet@v1.7.2
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -161,10 +169,13 @@ jobs:
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   windows--legacyFramework-only:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v1
       with:
@@ -186,16 +197,16 @@ jobs:
     - name: integration tests
       run: .\make update-servers
 
-  windows--dotnet6-only:
+  windows--dotnet-only:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
-      uses: actions/setup-dotnet@v1.7.2
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: HACK to emulate legacy .NETFramework uninstall
       run: del $(& "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -find MSBuild\\**\\Bin\\MSBuild.exe)
     - name: configure
@@ -219,6 +230,9 @@ jobs:
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux24-github--dotnet-and-mono:
@@ -228,9 +242,9 @@ jobs:
       with:
         submodules: false
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
-    - name: check mono version
-      run: mono --version
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
+    - name: check runtime version(s)
+      run: mono --version; dotnet --version
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -251,6 +265,9 @@ jobs:
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux24-github--dotnet-and-newmono:
@@ -260,11 +277,11 @@ jobs:
       with:
         submodules: false
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
-    - name: check mono version
-      run: mono --version
+    - name: check runtime version(s)
+      run: mono --version; dotnet --version
     - name: install GTK libs (dependency of GTK frontend)
       run: sudo apt install --yes libgtk2.0-cil-dev
     - name: configure
@@ -287,6 +304,9 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -313,7 +333,7 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: check mono version
+    - name: check runtime version(s)
       run: mono --version
     - name: configure
       run: ./configure.sh
@@ -330,7 +350,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux24-vanilla--stockdotnet6-only:
+  linux24-vanilla--stockdotnet-only:
     runs-on: ubuntu-24.04
     container:
       image: "ubuntu:24.04"
@@ -343,7 +363,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet8
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -369,9 +389,12 @@ jobs:
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux24-vanilla--stockdotnet6-and-newmono:
+  linux24-vanilla--stockdotnet-and-newmono:
     runs-on: ubuntu-24.04
     container:
       image: "ubuntu:24.04"
@@ -384,7 +407,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet8
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -412,9 +435,12 @@ jobs:
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux24-vanilla--stockdotnet6-and-stockmono:
+  linux24-vanilla--stockdotnet-and-stockmono:
     runs-on: ubuntu-24.04
     container:
       image: "ubuntu:24.04"
@@ -427,7 +453,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6 mono-xbuild fsharp
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet8 mono-xbuild fsharp
     - name: install GTK libs (dependency of GTK frontend)
       run: sudo apt install --yes libgtk2.0-cil-dev
     # workaround for https://github.com/actions/runner/issues/2033
@@ -454,6 +480,9 @@ jobs:
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux24-vanilla--newmono-only:
@@ -477,7 +506,7 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: check mono version
+    - name: check runtime version(s)
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
       run: sudo apt install --yes libgtk2.0-cil-dev
@@ -504,9 +533,9 @@ jobs:
       with:
         submodules: false
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
-    - name: check mono version
-      run: mono --version
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
+    - name: check runtime version(s)
+      run: mono --version; dotnet --version
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -527,20 +556,21 @@ jobs:
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux22-github--dotnet-and-newmono:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
-      with:
-        submodules: false
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
-    - name: check mono version
-      run: mono --version
+    - name: check runtime version(s)
+      run: mono --version; dotnet --version
     - name: install GTK libs (dependency of GTK frontend)
       run: sudo apt install --yes libgtk2.0-cil-dev
     - name: configure
@@ -561,6 +591,9 @@ jobs:
     - name: compile .fsx scripts
       run: |
         dotnet new tool-manifest
+
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
@@ -589,7 +622,7 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: check mono version
+    - name: check runtime version(s)
       run: mono --version
     - name: configure
       run: ./configure.sh
@@ -606,7 +639,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux22-vanilla--stockdotnet6-only:
+  linux22-vanilla--stockdotnet-only:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -647,7 +680,7 @@ jobs:
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux22-vanilla--stockdotnet6-and-newmono:
+  linux22-vanilla--stockdotnet-and-newmono:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -690,7 +723,7 @@ jobs:
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux22-vanilla--stockdotnet6-and-stockmono:
+  linux22-vanilla--stockdotnet-and-stockmono:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -753,7 +786,7 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: check mono version
+    - name: check runtime version(s)
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
       run: sudo apt install --yes libgtk2.0-cil-dev
@@ -782,22 +815,19 @@ jobs:
     - linux24-github--dotnet-and-newmono
     - linux24-vanilla--stockmono-only
     - linux24-vanilla--newmono-only
-    - linux24-vanilla--stockdotnet6-only
-    - linux24-vanilla--stockdotnet6-and-stockmono
-    - linux24-vanilla--stockdotnet6-and-newmono
+    - linux24-vanilla--stockdotnet-only
+    - linux24-vanilla--stockdotnet-and-stockmono
+    - linux24-vanilla--stockdotnet-and-newmono
     - linux22-github--dotnet-and-mono
     - linux22-github--dotnet-and-newmono
     - linux22-vanilla--stockmono-only
     - linux22-vanilla--newmono-only
-    - linux22-vanilla--stockdotnet6-only
-    - linux22-vanilla--stockdotnet6-and-stockmono
-    - linux22-vanilla--stockdotnet6-and-newmono
-    - windows--dotnet6-and-legacyFramework
+    - windows--dotnet-and-legacyFramework
     - windows--legacyFramework-only
-    - windows--dotnet6-only
-    - macOS--dotnet6-and-mono
+    - windows--dotnet-only
+    - macOS--dotnet-and-mono
     - macOS--mono-only
-    - macOS--dotnet6-only
+    - macOS--dotnet-only
 
     steps:
     - uses: actions/checkout@v1
@@ -808,7 +838,7 @@ jobs:
         which sudo 2>/dev/null || (apt update && apt install --yes sudo)
         sudo apt update
 
-        sudo apt install --yes git npm curl
+        sudo DEBIAN_FRONTEND=noninteractive apt install --yes git npm curl
         sudo npm install --global n
         sudo n lts
     # workaround for https://github.com/actions/runner/issues/2033
@@ -857,7 +887,7 @@ jobs:
     - name: Test snap
       run: geewallet --version
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       name: Upload snap package as artifact
       with:
         name: snap
