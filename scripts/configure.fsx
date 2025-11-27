@@ -25,10 +25,24 @@ if argsToThisFsxScript.Any(fun arg -> arg = "--from-configure") then
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let stableVersionOfMono = Version("6.6")
+let stableVersionOfDotNet = Version "8.0"
 
 let buildTool, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply =
 
-    let dotnetCmd = Process.ConfigCommandCheck ["dotnet"] false true
+    let anyDotnetCmd = Process.ConfigCommandCheck ["dotnet"] false true
+    let dotnet8Cmd =
+        match anyDotnetCmd with
+        | None -> None
+        | Some _ ->
+            let currentDotNetVersion =
+                Process.Execute({ Command = "dotnet"; Arguments = "--version" }, Echo.Off).UnwrapDefault().Trim()
+                |> Version
+
+            // NOTE: see what 1 means here: https://learn.microsoft.com/en-us/dotnet/api/system.version.compareto?view=netframework-4.7
+            if 1 = stableVersionOfDotNet.CompareTo currentDotNetVersion then
+                None
+            else
+                anyDotnetCmd
 
     match Misc.GuessPlatform() with
     | Misc.Platform.Windows ->
@@ -42,29 +56,29 @@ let buildTool, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply =
                 Console.WriteLine "found"
                 Some msbuildPath
 
-        dotnetCmd, msbuildCmd, true
+        dotnet8Cmd, msbuildCmd, true
     | platform (* Unix *) ->
         Process.ConfigCommandCheck ["make"] true true |> ignore
 
         match Process.ConfigCommandCheck ["mono"] false true with
         | None ->
-            dotnetCmd, None, true
+            dotnet8Cmd, None, true
         | Some _ ->
 
             match Process.ConfigCommandCheck ["fsharpc"] false true with
             | None ->
-                dotnetCmd, None, true
+                dotnet8Cmd, None, true
             | Some _ ->
 
                 if platform = Misc.Platform.Mac then
                     let msBuildOrXBuild = Process.ConfigCommandCheck [ "msbuild"; "xbuild" ] false true
-                    dotnetCmd, msBuildOrXBuild, true
+                    dotnet8Cmd, msBuildOrXBuild, true
                 else
 
                     let pkgConfig = "pkg-config"
 
                     match Process.ConfigCommandCheck [ pkgConfig ] false true with
-                    | None -> dotnetCmd, None, true
+                    | None -> dotnet8Cmd, None, true
                     | Some _ ->
 
                         // yes, msbuild tests for the existence of this file path below (a folder named xbuild, not msbuild),
@@ -109,12 +123,12 @@ let buildTool, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply =
                         // NOTE: see what 1 means here: https://learn.microsoft.com/en-us/dotnet/api/system.version.compareto?view=netframework-4.7
                         if 1 = stableVersionOfMono.CompareTo currentMonoVersion then
                             Console.WriteLine "not found"
-                            dotnetCmd, None, true
+                            dotnet8Cmd, None, true
                         else
                             Console.WriteLine "found"
 
                             let areGtkLibsAbsentOrDoesNotApply =
-                                match dotnetCmd, maybeMsbuild, maybeXbuild with
+                                match dotnet8Cmd, maybeMsbuild, maybeXbuild with
                                 | None, None, None ->
                                     // well, configure.fsx will not finish in this case anyway
                                     true
@@ -141,7 +155,7 @@ let buildTool, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply =
                                 else
                                     maybeXbuild
 
-                            dotnetCmd, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply
+                            dotnet8Cmd, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply
 
 if buildTool.IsNone && legacyBuildTool.IsNone then
     Console.Out.Flush()
@@ -149,11 +163,16 @@ if buildTool.IsNone && legacyBuildTool.IsNone then
 
     match Misc.GuessPlatform() with
     | Misc.Platform.Windows ->
-        Console.Error.WriteLine "Please install 'dotnet' aka .NET (6.0 or newer), and/or .NETFramework 4.x ('msbuild')"
+        Console.Error.WriteLine (
+            sprintf
+                "Please install 'dotnet' aka .NET (v%s or newer), and/or .NETFramework 4.x ('msbuild')"
+                (stableVersionOfDotNet.ToString())
+        )
     | _ ->
         Console.Error.WriteLine (
             sprintf
-                "Please install dotnet v6 (or newer), and/or Mono (msbuild or xbuild needed) v%s (or newer)"
+                "Please install dotnet v%s (or newer), and/or Mono (msbuild or xbuild needed) v%s (or newer)"
+                (stableVersionOfDotNet.ToString())
                 (stableVersionOfMono.ToString())
         )
 
