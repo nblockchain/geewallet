@@ -300,7 +300,7 @@ let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
     let frontend =
         // older mono versions (which only have xbuild, not msbuild) can't compile .NET Standard assemblies
         match maybeBuildTool, maybeLegacyBuildTool with
-        | _, Some legacyBuildTool when legacyBuildTool = "msbuild" ->
+        | _, Some ("msbuild" as legacyBuildTool) ->
 
             let MSBuildRestoreAndBuild solutionFile =
                 BuildSolutionOrProject (getBuildToolAndArgs legacyBuildTool) solutionFile binaryConfig maybeConstant "-target:Restore"
