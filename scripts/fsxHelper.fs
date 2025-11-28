@@ -13,17 +13,22 @@ type SolutionFile =
 
 module FsxHelper =
 
-    let GetSolution (solType: SolutionFile) =
+    let GetSolution (solType: SolutionFile) (legacy: bool) =
         let solFileName =
             match solType with
             | Default ->
-    #if !LEGACY_FRAMEWORK
-                "gwallet.core.sln"
-    #else
-                "gwallet.core-legacy.sln"
-    #endif
-            | Linux -> "gwallet.linux-legacy.sln"
-            | Mac -> "gwallet.mac-legacy.sln"
+                if not legacy then
+                    "gwallet.core.sln"
+                else
+                    "gwallet.core-legacy.sln"
+            | Linux ->
+                if not legacy then
+                    failwith "Linux+MAUI is not ready yet"
+                "gwallet.linux-legacy.sln"
+            | Mac ->
+                if not legacy then
+                    failwith "macOS+MAUI is not ready yet"
+                "gwallet.mac-legacy.sln"
 
         let slnFile =
             Path.Combine("src", solFileName)

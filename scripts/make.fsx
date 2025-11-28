@@ -182,14 +182,15 @@ let BuildSolutionOrProject
     (maybeConstant: Option<string>)
     (extraOptions: string)
     =
-#if LEGACY_FRAMEWORK
-    NugetRestore file
-#endif
-
     let buildTool,buildArg = buildToolAndBuildArg
 
+    let legacy = not <| buildTool.StartsWith "dotnet"
+
+    if legacy then
+        NugetRestore file
+
     let configOption =
-        if buildTool.StartsWith "dotnet" then
+        if not legacy then
             sprintf "--configuration %s" (binaryConfig.ToString())
         else
             // TODO: use -property instead of /property when we don't need xbuild anymore
@@ -246,9 +247,8 @@ let BuildSolutionOrProject
     | Error _ ->
         Console.WriteLine()
         Console.Error.WriteLine (sprintf "%s build failed" buildTool)
-#if LEGACY_FRAMEWORK
-        PrintNugetVersion() |> ignore
-#endif
+        if legacy then
+            PrintNugetVersion() |> ignore
         Environment.Exit 1
     | _ -> ()
 
@@ -256,7 +256,6 @@ let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
     let maybeLegacyBuildTool = Map.tryFind "LegacyBuildTool" buildConfigContents
 
-    let solutionFile = FsxHelper.GetSolution SolutionFile.Default
     let getBuildToolAndArgs(buildTool: string) =
         match buildTool with
         | "dotnet" ->
@@ -288,6 +287,8 @@ let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
     match maybeBuildTool, maybeLegacyBuildTool with
     | Some buildTool, _ 
     | None, Some buildTool ->
+        let legacy = not (buildTool.StartsWith "dotnet")
+        let solutionFile = FsxHelper.GetSolution SolutionFile.Default legacy
         BuildSolutionOrProject
             (getBuildToolAndArgs buildTool)
             solutionFile
@@ -307,23 +308,27 @@ let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
                 // TODO: report as a bug the fact that /t:Restore;Build doesn't work while /t:Restore and later /t:Build does
                 BuildSolutionOrProject (getBuildToolAndArgs legacyBuildTool) solutionFile binaryConfig maybeConstant "-target:Build"
 
+            // TODO: just finish migrating to MAUI
+            let stillLegacyBecauseMauiFrontendIsNotReady = true
             match Misc.GuessPlatform () with
             | Misc.Platform.Mac ->
                 //this is because building in release requires code signing keys
                 if binaryConfig = BinaryConfig.Debug then
-                    let solution = FsxHelper.GetSolution SolutionFile.Mac
+                    let solution = FsxHelper.GetSolution SolutionFile.Mac stillLegacyBecauseMauiFrontendIsNotReady
                     // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
-                    // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
-                    NugetRestore solution
+                    // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround.
+                    if stillLegacyBecauseMauiFrontendIsNotReady then
+                        NugetRestore solution
                     MSBuildRestoreAndBuild solution
 
                 FrontendApp.Console
             | Misc.Platform.Linux ->
                 if FsxHelper.AreGtkLibsPresent Echo.All then
-                    let solution = FsxHelper.GetSolution SolutionFile.Linux
+                    let solution = FsxHelper.GetSolution SolutionFile.Linux stillLegacyBecauseMauiFrontendIsNotReady
                     // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
-                    // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
-                    NugetRestore solution
+                    // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround
+                    if stillLegacyBecauseMauiFrontendIsNotReady then
+                        NugetRestore solution
                     MSBuildRestoreAndBuild solution
 
                     FrontendApp.Gtk

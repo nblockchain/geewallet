@@ -422,16 +422,17 @@ let SanityCheckNugetPackages () =
     //let solutions = Directory.GetCurrentDirectory() |> DirectoryInfo |> findSolutions
     //NOTE: we hardcode the solutions rather than the line above, because e.g. Linux OS can't build/restore iOS proj
     let sol =
+        let legacy = String.IsNullOrEmpty <| Environment.GetEnvironmentVariable "BuildTool"
         match Misc.GuessPlatform() with
 #if LEGACY_FRAMEWORK
         | Misc.Platform.Linux when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
-            FsxHelper.GetSolution SolutionFile.Linux
+            FsxHelper.GetSolution SolutionFile.Linux true
 #endif
         | Misc.Platform.Mac when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
-            FsxHelper.GetSolution SolutionFile.Mac
+            FsxHelper.GetSolution SolutionFile.Mac true
         | _ ->
             // TODO: have a windows solution file
-            FsxHelper.GetSolution SolutionFile.Default
+            FsxHelper.GetSolution SolutionFile.Default legacy
 
     sanityCheckNugetPackagesFromSolution sol
   
