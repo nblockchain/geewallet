@@ -1,8 +1,6 @@
 <Project>
   <PropertyGroup>
-    <OtherFlags>$(OtherFlags) --warnon:0193</OtherFlags>
-    <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>
-    <OtherFlags>$(OtherFlags) --warnon:3218</OtherFlags>
+    <WarnOn>FS0193,FS1182,FS3218</WarnOn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' != 'Debug' ">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
