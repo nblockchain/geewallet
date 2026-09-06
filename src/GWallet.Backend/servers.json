@@ -3987,6 +3987,30 @@
     "ETC": [
       {
         "ServerInfo": {
+          "NetworkPath": "ethereum-classic-mainnet.gateway.tatum.io",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "0xrpc.io/etc",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
           "NetworkPath": "besu-de.etc-network.info",
           "ConnectionType": {
             "Encrypted": true,
