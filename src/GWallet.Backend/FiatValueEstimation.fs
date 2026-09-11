@@ -969,6 +969,8 @@ module FiatValueEstimation =
 
     let private QueryOnlineInternal currency (provider: PriceProvider): Async<Option<string*string>> = async {
         use webClient = new WebClient()
+        // CoinGecko needs User-Agent header to be set, otherwise it fails with error 403
+        webClient.Headers.["User-Agent"] <- Config.AppName
         let tickerName =
             match currency,provider with
             | Currency.BTC,_ -> "bitcoin"

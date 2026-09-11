@@ -31,7 +31,7 @@ open GWallet.Scripting
 #if LEGACY_FRAMEWORK
 #r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"
 #else
-#r "nuget: Microsoft.Build, Version=16.11.0"
+#r "nuget: Microsoft.Build, Version=17.3.0"
 #endif
 open Microsoft.Build.Construction
 
