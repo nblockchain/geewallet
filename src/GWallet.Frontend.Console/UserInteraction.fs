@@ -271,6 +271,14 @@ module UserInteraction =
         Console.Write "Retrieving balances..."
         Async.Parallel accountAndBalancesToBeQueried
 
+    let private AnyBalanceIsPositive (accountsWithBalances: seq<IAccount*MaybeCached<decimal>*MaybeCached<decimal>>)
+                                        : bool =
+        accountsWithBalances.Any(fun (_,maybeBalance,_) ->
+            match maybeBalance with
+            | Fresh(balance) -> balance > 0m
+            | _ -> false
+        )
+
     let DisplayAccountStatuses(whichAccount: WhichAccount): Async<seq<string>> =
         let rec displayAllAndSumBalance (accounts: seq<IAccount*MaybeCached<decimal>*MaybeCached<decimal>>)
                                         (currentIndex: int)
@@ -346,6 +354,14 @@ module UserInteraction =
             if (accounts.Any()) then
                 async {
                     let! accountsWithBalances = GetAccountBalances accounts
+
+                    // balances have been retrieved: if the config dir was migrated from an old
+                    // location (workaround for geewallet issue #312), and some balance is positive,
+                    // then the new config dir location is confirmed to work fine, so the old
+                    // config dir can finally be removed
+                    if AnyBalanceIsPositive accountsWithBalances then
+                        Config.MaybeRemoveMigratedOldConfigDir ()
+
                     let statuses, currencyTotals = displayAllAndSumBalance accountsWithBalances 0 Map.empty
 
                     // All balances are fetched and their currency names printed, put a dot at the end of "Retrieving balances... " line.
