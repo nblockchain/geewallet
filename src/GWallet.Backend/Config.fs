@@ -43,6 +43,25 @@ module Config =
     let IsMacPlatform() =
         RuntimeInformation.IsOSPlatform OSPlatform.OSX
 
+    // TODO: dedupe this func from GWallet.Frontend.XF.FrontendHelpers' IsDesktop() when this
+    //       branch gets merged into master; note that we can't reuse IsDesktop()'s implementation
+    //       here (inverted) as-is because it uses the Device.RuntimePlatform API, which doesn't
+    //       come from Essentials but from the Xamarin.Forms package, which is only referenced by
+    //       the GWallet.Frontend.XF project (and the master branch's Backend, which also uses
+    //       DeviceInfo.Platform for platform checks, is in the same situation as ours)
+    // NOTE: we use the DeviceInfo API from the DotNetEssentials nuget dependency (a fork of
+    //       Xamarin.Essentials) for this: on mobile platforms, the platform-specific assemblies
+    //       of that package (which the mobile frontends of the master branch reference) make its
+    //       Platform property return the actual platform of the device, whereas on the rest of
+    //       platforms (where its netstandard assembly gets used, like in this console frontend)
+    //       it simply returns Unknown
+    // NOTE: we reference this API fully-qualified (without opening the Xamarin.Essentials
+    //       namespace) because opening it fails to compile in the legacy framework build, in
+    //       the same way as the rest of usages in the master branch's Backend
+    let IsMobilePlatform() =
+        Xamarin.Essentials.DeviceInfo.Platform = Xamarin.Essentials.DevicePlatform.Android ||
+        Xamarin.Essentials.DeviceInfo.Platform = Xamarin.Essentials.DevicePlatform.iOS
+
     let GetMonoVersion(): Option<Version> =
         FSharpUtil.option {
             // this gives None on MS.NET (e.g. UWP/WPF)
@@ -63,12 +82,104 @@ module Config =
 
     let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = 3u
 
-    let internal GetConfigDirForThisProgram() =
-        let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-        let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
-        if not configDir.Exists then
-            configDir.Create()
-        configDir
+    // Workaround for https://github.com/nblockchain/geewallet/issues/312: .NET8 (or greater)
+    // changed the folder that Environment.SpecialFolder.ApplicationData points at on macOS
+    // (it used to be $HOME/.config, and it's now a subfolder of $HOME/Library), which meant
+    // that geewallet stopped finding its config folder when its .NET runtime got upgraded
+    // from .NET6 to .NET8. Windows and mobile platforms (Android & iOS) keep using the
+    // ApplicationData folder (as before), but for the rest of platforms (e.g. macOS and
+    // Linux) the config folder is now $HOME/.config/gwallet. If the new location doesn't
+    // contain any existing config, we probe the folders that old geewallet versions could
+    // have been using, and the first one that exists gets copied (migrated) to the new
+    // location. The old folder is not deleted right away: that only happens once the
+    // account balances have been retrieved from the new location and some of them are
+    // positive (see MaybeRemoveMigratedOldConfigDir below).
+
+    let private configDirResolutionLock = obj()
+
+    // when a config dir migration happens, the old config dir is stored here so that it can
+    // be removed later, once balances have been retrieved and some of them is positive
+    let mutable private migratedOldConfigDir: Option<DirectoryInfo> = None
+
+    let private HasExistingConfig (configDir: DirectoryInfo): bool =
+        let accountsDir = DirectoryInfo(Path.Combine(configDir.FullName, "accounts"))
+        accountsDir.Exists
+
+    let rec private CopyDirRecursively (sourceDir: DirectoryInfo) (destinationDir: DirectoryInfo): unit =
+        if not destinationDir.Exists then
+            destinationDir.Create()
+        for file in sourceDir.GetFiles() do
+            file.CopyTo(Path.Combine(destinationDir.FullName, file.Name), true) |> ignore<FileInfo>
+        for subDir in sourceDir.GetDirectories() do
+            CopyDirRecursively subDir (DirectoryInfo(Path.Combine(destinationDir.FullName, subDir.Name)))
+
+    // copies the first existing folder of oldConfigDirCandidates into newConfigDir (only if
+    // the latter doesn't have an existing config), returning the old config dir that got
+    // its contents migrated, if any
+    let MaybeMigrateOldConfigDir (newConfigDir: DirectoryInfo)
+                                 (oldConfigDirCandidates: seq<DirectoryInfo>): Option<DirectoryInfo> =
+        if HasExistingConfig newConfigDir then
+            None
+        else
+            let existingOldConfigDir =
+                oldConfigDirCandidates
+                |> Seq.filter (fun oldConfigDir -> oldConfigDir.Exists)
+                |> Seq.tryHead
+            match existingOldConfigDir with
+            | Some oldConfigDir when oldConfigDir.FullName <> newConfigDir.FullName ->
+                CopyDirRecursively oldConfigDir newConfigDir
+                Some oldConfigDir
+            | _ -> None
+
+    let internal GetConfigDirForThisProgram(): DirectoryInfo =
+        if IsWindowsPlatform() || IsMobilePlatform() then
+            let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+            let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
+            if not configDir.Exists then
+                configDir.Create()
+            configDir
+        else
+            // the migration logic (and even the mere creation of the config dir) shouldn't
+            // run several times in parallel, hence this lock
+            lock configDirResolutionLock (fun _ ->
+                let configPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+                let configDir = DirectoryInfo(Path.Combine(configPath, ".config", "gwallet"))
+
+                if not (HasExistingConfig configDir) then
+                    let oldConfigDirCandidates = seq {
+                        // the folder that old geewallet versions used on these platforms:
+                        let appDataConfigPath =
+                            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+                        yield DirectoryInfo(Path.Combine(appDataConfigPath, "gwallet"))
+
+                        // the folder that .NET8+ points at with ApplicationData on macOS:
+                        yield DirectoryInfo(Path.Combine(configPath, "Library", "Application Support", "gwallet"))
+                    }
+                    migratedOldConfigDir <- MaybeMigrateOldConfigDir configDir oldConfigDirCandidates
+
+                if not configDir.Exists then
+                    configDir.Create()
+                configDir
+            )
+
+    // to be called by frontends when account balances have been retrieved: if a config dir
+    // migration happened, and some retrieved balance is positive, then the new config dir
+    // location is confirmed to be working fine, and the old config dir can be removed
+    let MaybeRemoveMigratedOldConfigDir (): unit =
+        lock configDirResolutionLock (fun _ ->
+            match migratedOldConfigDir with
+            | Some oldConfigDir ->
+                migratedOldConfigDir <- None
+                if Directory.Exists oldConfigDir.FullName then
+                    try
+                        Directory.Delete(oldConfigDir.FullName, true)
+                    with
+                    | ex ->
+                        Console.Error.WriteLine(
+                            SPrintF2 "WARNING: old config folder (%s), which was migrated to the new config folder location, couldn't be removed; please remove it manually. The error was: %s"
+                                oldConfigDir.FullName ex.Message)
+            | _ -> ()
+        )
 
     let internal GetCacheDir() =
         let configPath = GetConfigDirForThisProgram().FullName

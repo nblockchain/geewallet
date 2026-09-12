@@ -416,6 +416,7 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
     let archivedAccountsInNeedOfAction =
         Account.GetArchivedAccountsWithPositiveBalance None
             |> Async.RunSynchronously
+
     for archivedAccount,balance in archivedAccountsInNeedOfAction do
         let currency = (archivedAccount:>IAccount).Currency
         Console.WriteLine (sprintf "ALERT! An archived account has received funds:%sAddress: %s Balance: %s%A"
