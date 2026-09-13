@@ -16,6 +16,7 @@
     <Compile Include="ParallelizationAndOptimization.fs" />
     <Compile Include="AsyncCancellation.fs" />
     <Compile Include="CompoundBalanceCaching.fs" />
+    <Compile Include="Config.fs" />
     <Compile Include="ElectrumIntegrationTests.fs" />
     <Compile Include="Formatting.fs" />
     <Compile Include="ServerReference.fs" />
