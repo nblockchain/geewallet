@@ -196,6 +196,7 @@ module Server =
             "missing trie node"
             "getDeleteStateObject"
             "execution aborted"
+            "The method eth_call is not supported"
         ]
 
     let MaybeRethrowRpcResponseException (ex: Exception): unit =
@@ -205,7 +206,7 @@ module Server =
             if not (isNull rpcResponseEx.RpcError) then
                 match rpcResponseEx.RpcError.Code with
                 | a when a = int RpcErrorCode.JackOfAllTradesErrorCode ->
-                    if not (err32kPossibleMessages.Any (fun msg -> rpcResponseEx.RpcError.Message.Contains msg)) then
+                    if not (err32kPossibleMessages.Any (fun msg -> rpcResponseEx.RpcError.Message.ToLowerInvariant().Contains (msg.ToLowerInvariant()))) then
                         let possibleErrMessages =
                             SPrintF1 "'%s'" (String.Join("' or '", err32kPossibleMessages))
                         raise <| Exception(
