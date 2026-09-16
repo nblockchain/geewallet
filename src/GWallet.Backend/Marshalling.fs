@@ -235,8 +235,7 @@ module Marshalling =
     let Deserialize<'T>(json: string): 'T =
         match typeof<'T> with
         | theType when typeof<Exception>.IsAssignableFrom theType ->
-            let marshalledException: MarshalledException = DeserializeCustom(json, DefaultSettings)
-            BinaryMarshalling.DeserializeFromString marshalledException.FullBinaryForm :?> 'T
+            raise <| NotSupportedException()
         | _ ->
             DeserializeCustom(json, DefaultSettings)
 
@@ -255,22 +254,8 @@ module Marshalling =
 
     let Serialize<'T>(value: 'T): string =
         match box value with
-        | :? Exception as ex ->
-            let exToSerialize = MarshalledException.Create ex
-            let serializedEx = SerializeCustom(exToSerialize, DefaultSettings, DefaultFormatting)
-
-            try
-                let _deserializedEx: 'T = Deserialize serializedEx
-                ()
-            with
-            | ex ->
-                raise
-                <| MarshallingCompatibilityException (
-                    SPrintF1
-                        "Exception type '%s' could not be serialized. Maybe it lacks the required '(info: SerializationInfo, context: StreamingContext)' constructor?"
-                        typeof<'T>.FullName, ex)
-
-            serializedEx
+        | :? Exception ->
+            raise <| NotSupportedException()
         | _ ->
             SerializeCustom(value, DefaultSettings, DefaultFormatting)
 
