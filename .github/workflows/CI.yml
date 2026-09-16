@@ -519,10 +519,10 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: install missing dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+    - name: install missing dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: check runtime version(s)
       run: mono --version; dotnet --version
     - name: configure
@@ -689,10 +689,10 @@ jobs:
 
     - name: install sudo
       run: apt update && apt install --yes sudo
-    - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
