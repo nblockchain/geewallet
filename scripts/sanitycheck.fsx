@@ -90,6 +90,7 @@ let FindOffendingPrintfUsage () =
     let findScript = Path.Combine (FsxHelper.RootDir.FullName, "scripts", "find.fsx")
     let excludeFolders =
         String.Format (
+            ".nuget{0}packages{0}" +
             "scripts{0}" +
             "src{1}GWallet.Frontend.Console{0}" +
             "src{1}GWallet.Backend.Tests{0}" +
