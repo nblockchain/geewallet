@@ -552,8 +552,17 @@ jobs:
 
     - name: install sudo
       run: apt update && apt install --yes sudo
-    - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
+
+    - name: install basic dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl
+
+    - name: add jammy sources to grab mono packages from it (they don't exist anymore in 26.04)
+      run: |
+        echo "deb http://archive.ubuntu.com/ubuntu jammy universe" | sudo tee /etc/apt/sources.list.d/jammy-universe.list
+        sudo apt update --yes
+
+    - name: install build dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
