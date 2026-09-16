@@ -560,7 +560,7 @@ jobs:
         sudo apt update --yes
 
     - name: install build dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes ca-certificates-mono fsharp nunit-console
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
