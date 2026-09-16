@@ -78,6 +78,7 @@
     <Compile Include="ElectrumIntegrationTests.fs" />
     <Compile Include="WarpWallet.fs" />
     <Compile Include="CompoundBalanceCaching.fs" />
+    <Compile Include="Config.fs" />
     <Compile Include="Formatting.fs" />
     <Compile Include="ServerReference.fs" />
     <Compile Include="ExceptionMarshalling.fs" />
