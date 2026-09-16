@@ -488,16 +488,14 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux26-github--dotnet-and-mono:
+  linux26-github--dotnet-only:
     runs-on: ubuntu-26.04
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: install missing dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: check runtime version(s)
-      run: mono --version; dotnet --version
+      run: dotnet --version
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -896,7 +894,7 @@ jobs:
     - linux24-vanilla--stockdotnet-only
     - linux24-vanilla--stockdotnet-and-stockmono
     - linux24-vanilla--stockdotnet-and-newmono
-    - linux26-github--dotnet-and-mono
+    - linux26-github--dotnet-only
     - linux26-github--dotnet-and-newmono
     - linux26-vanilla--stockmono-only
     - linux26-vanilla--newmono-only
