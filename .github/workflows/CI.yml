@@ -488,6 +488,275 @@ jobs:
     - name: integration tests
       run: make update-servers
 
+  linux26-github--dotnet-only:
+    runs-on: ubuntu-26.04
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+    - name: check runtime version(s)
+      run: dotnet --version
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+  linux26-github--dotnet-and-newmono:
+    runs-on: ubuntu-26.04
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+    - name: install last version of mono (Microsoft APT repositories)
+      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+    - name: install missing dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
+    - name: check runtime version(s)
+      run: mono --version; dotnet --version
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+  linux26-vanilla--stockmono-only:
+    runs-on: ubuntu-26.04
+    container:
+      image: "ubuntu:26.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+
+    - name: install basic dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl
+
+    - name: add jammy sources to grab mono packages from it (they don't exist anymore in 26.04)
+      run: |
+        echo "deb http://archive.ubuntu.com/ubuntu jammy universe" | sudo tee /etc/apt/sources.list.d/jammy-universe.list
+        sudo apt update --yes
+
+    - name: install build dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes ca-certificates-mono fsharp nunit-console
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: check runtime version(s)
+      run: mono --version
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+  linux26-vanilla--stockdotnet-only:
+    runs-on: ubuntu-26.04
+    container:
+      image: "ubuntu:26.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet10
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+    - name: compile .fsx scripts
+      run: |
+        dotnet new tool-manifest
+
+        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+        dotnet tool install fsxc --version 0.5.9.1
+
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
+        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
+
+  linux26-vanilla--stockdotnet-and-newmono:
+    runs-on: ubuntu-26.04
+    container:
+      image: "ubuntu:26.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet10
+    - name: install last version of mono (Microsoft APT repositories)
+      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+    - name: compile .fsx scripts
+      run: |
+        dotnet new tool-manifest
+
+        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+        dotnet tool install fsxc --version 0.5.9.1
+
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
+        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
+
+  linux26-vanilla--stockdotnet-and-stockmono:
+    runs-on: ubuntu-26.04
+    container:
+      image: "ubuntu:26.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet10 mono-xbuild
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+    - name: compile .fsx scripts
+      run: |
+        dotnet new tool-manifest
+
+        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+        dotnet tool install fsxc --version 0.5.9.1
+
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
+        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
+
+  linux26-vanilla--newmono-only:
+    runs-on: ubuntu-26.04
+    container:
+      image: "ubuntu:26.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install last version of mono (Microsoft APT repositories)
+      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: check runtime version(s)
+      run: mono --version
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
 
   linux22-github--dotnet-and-mono:
     runs-on: ubuntu-22.04
@@ -625,6 +894,13 @@ jobs:
     - linux24-vanilla--stockdotnet-only
     - linux24-vanilla--stockdotnet-and-stockmono
     - linux24-vanilla--stockdotnet-and-newmono
+    - linux26-github--dotnet-only
+    - linux26-github--dotnet-and-newmono
+    - linux26-vanilla--stockmono-only
+    - linux26-vanilla--newmono-only
+    - linux26-vanilla--stockdotnet-only
+    - linux26-vanilla--stockdotnet-and-stockmono
+    - linux26-vanilla--stockdotnet-and-newmono
     - linux22-github--dotnet-and-mono
     - linux22-github--dotnet-and-newmono
     - linux22-vanilla--stockmono-only
