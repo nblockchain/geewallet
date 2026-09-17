@@ -225,7 +225,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
 
         async {
-            let! resObj,_ = self.Request<BlockchainScriptHashGetBalanceResult> json
+            let! resObj, jsonResponse = self.Request<BlockchainScriptHashGetBalanceResult> json
+            if Object.ReferenceEquals(resObj.Result, null) then
+                failwith <| SPrintF1 "Deserialized fine, but Result was null? (Original json: %s.)" jsonResponse
             return resObj
         }
 
@@ -273,7 +275,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         }
         let json = Serialize obj
         async {
-            let! resObj,_ = self.Request<BlockchainScriptHashListUnspentResult> json
+            let! resObj, jsonResponse = self.Request<BlockchainScriptHashListUnspentResult> json
+            if isNull resObj.Result then
+                failwith <| SPrintF1 "Deserialized fine, but Result was null? (Original json: %s.)" jsonResponse
             return resObj
         }
 
@@ -285,7 +289,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         }
         let json = Serialize obj
         async {
-            let! resObj,_ = self.Request<BlockchainTransactionGetResult> json
+            let! resObj, jsonResponse = self.Request<BlockchainTransactionGetResult> json
+            if isNull resObj.Result then
+                failwith <| SPrintF1 "Deserialized fine, but Result was null? (Original json: %s.)" jsonResponse
             return resObj
         }
 
@@ -298,7 +304,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         }
         let json = Serialize obj
         async {
-            let! resObj,_ = self.Request<BlockchainTransactionIdFromPosResult> json
+            let! resObj, jsonResponse = self.Request<BlockchainTransactionIdFromPosResult> json
+            if isNull resObj.Result then
+                failwith <| SPrintF1 "Deserialized fine, but Result was null? (Original json: %s.)" jsonResponse
             return resObj
         }
 
@@ -313,7 +321,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
 
         async {
-            let! resObj,_ = self.Request<BlockchainEstimateFeeResult> json
+            let! resObj, jsonResponse = self.Request<BlockchainEstimateFeeResult> json
+            if Object.ReferenceEquals(resObj.Result, null) then
+                failwith <| SPrintF1 "Deserialized fine, but Result was null? (Original json: %s.)" jsonResponse
             return resObj
         }
 
@@ -326,6 +336,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
 
         async {
-            let! resObj,_ = self.Request<BlockchainTransactionBroadcastResult> json
+            let! resObj, jsonResponse = self.Request<BlockchainTransactionBroadcastResult> json
+            if isNull resObj.Result then
+                failwith <| SPrintF1 "Deserialized fine, but Result was null? (Original json: %s.)" jsonResponse
             return resObj
         }
