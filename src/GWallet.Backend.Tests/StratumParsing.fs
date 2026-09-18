@@ -51,3 +51,31 @@ type StratumParsing() =
         )
 
         Assert.That(ex.ErrorCode, Is.EqualTo None)
+
+    [<Test>]
+    member __.``hitting the NRE reported by the user``() =
+        let fakeResponse = "{\"jsonrpc\":\"2.0\",\"method\":\"blockchain.relayfee\"" + String.replicate 511 " " + "\n}"
+
+        let listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.IPv6Loopback, 0)
+        listener.Server.SetSocketOption(System.Net.Sockets.SocketOptionLevel.IPv6,
+                                        System.Net.Sockets.SocketOptionName.IPv6Only, false)
+        listener.Start()
+        let port = uint32 (listener.LocalEndpoint :?> System.Net.IPEndPoint).Port
+
+        let serverAsync = async {
+            let! client = listener.AcceptTcpClientAsync() |> Async.AwaitTask
+            use stream = client.GetStream()
+            use reader = new System.IO.StreamReader(stream)
+            let! _request = reader.ReadLineAsync() |> Async.AwaitTask
+            use writer = new System.IO.StreamWriter(stream)
+            writer.AutoFlush <- true
+            do! writer.WriteLineAsync(fakeResponse) |> Async.AwaitTask
+        }
+        let serverTask = serverAsync |> Async.StartAsTask
+        do ignore serverTask
+
+        let jsonRpcClient = JsonRpcTcpClient("localhost", port)
+        let stratumClient = StratumClient(jsonRpcClient)
+        stratumClient.BlockchainScriptHashGetBalance "someaddress"
+        |> Async.RunSynchronously
+        |> ignore
