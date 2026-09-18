@@ -71,11 +71,26 @@ type StratumParsing() =
             writer.AutoFlush <- true
             do! writer.WriteLineAsync(fakeResponse) |> Async.AwaitTask
         }
-        let serverTask = serverAsync |> Async.StartAsTask
-        do ignore serverTask
+        let _serverTask = serverAsync |> Async.StartAsTask
+        let mutable response: Option<BlockchainScriptHashGetBalanceResult> = None
 
-        let jsonRpcClient = JsonRpcTcpClient("localhost", port)
-        let stratumClient = StratumClient(jsonRpcClient)
-        stratumClient.BlockchainScriptHashGetBalance "someaddress"
-        |> Async.RunSynchronously
-        |> ignore
+        let ex =
+            try
+                let jsonRpcClient = JsonRpcTcpClient("localhost", port)
+                let stratumClient = StratumClient(jsonRpcClient)
+                async {
+                    let! res = stratumClient.BlockchainScriptHashGetBalance "someaddress"
+                    response <- Some res
+                }
+                |> Async.RunSynchronously
+                |> ignore
+                None
+            with
+            | exn -> Some exn
+        match ex, response with
+        | Some ex, _ ->
+            Assert.That(ex.Message.Contains "blockchain.relayfee")
+        | None, None -> Assert.Fail "Impossible to get no response and no exception"
+        | None, Some res ->
+            Assert.Fail ("Should have failed, but we got a response with this Id:" + res.Id.ToString())
+
