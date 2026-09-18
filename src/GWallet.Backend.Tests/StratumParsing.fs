@@ -84,6 +84,7 @@ type StratumParsing() =
                 }
                 |> Async.RunSynchronously
                 |> ignore
+                printfn "Confirmed balance received from NRE test: " + response.Result.Confirmed
                 None
             with
             | exn -> Some exn
@@ -92,5 +93,10 @@ type StratumParsing() =
             Assert.That(ex.Message.Contains "blockchain.relayfee")
         | None, None -> Assert.Fail "Impossible to get no response and no exception"
         | None, Some res ->
-            Assert.Fail ("Should have failed, but we got a response with this Id:" + res.Id.ToString())
+            Assert.Fail (
+                sprintf "Should have failed, but we got a response with this data: Id=%s,Conf=%s,Unconf=%s"
+                (res.Id.ToString())
+                (res.Result.Confirmed)
+                (res.Result.Unconfirmed)
+            )
 
