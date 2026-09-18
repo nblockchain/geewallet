@@ -80,6 +80,7 @@ type StratumParsing() =
                 let stratumClient = StratumClient(jsonRpcClient)
                 async {
                     let! res = stratumClient.BlockchainScriptHashGetBalance "someaddress"
+                    printfn "Confirmed balance received from NRE test: %s" (res.Result.Confirmed.ToString())
                     response <- Some res
                 }
                 |> Async.RunSynchronously
@@ -89,8 +90,19 @@ type StratumParsing() =
             | exn -> Some exn
         match ex, response with
         | Some ex, _ ->
-            Assert.That(ex.Message.Contains "blockchain.relayfee")
+            let jsonFragment = "blockchain.relayfee"
+            Assert.That(
+                ex.Message.Contains jsonFragment,
+                sprintf
+                    "Exception received (of type %s) didn't contain original JSON fragment '%s'"
+                    (ex.GetType().Name)
+                    jsonFragment
+            )
         | None, None -> Assert.Fail "Impossible to get no response and no exception"
         | None, Some res ->
-            Assert.Fail ("Should have failed, but we got a response with this Id:" + res.Id.ToString())
+            Assert.Fail (
+                sprintf
+                    "Should have failed, but we got a response with this data: Id=%s"
+                    (res.Id.ToString())
+            )
 
