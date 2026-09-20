@@ -4,6 +4,8 @@ open System
 
 open NUnit.Framework
 
+open System.Net
+
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 
@@ -127,4 +129,56 @@ type StratumParsing() =
                     "Should have failed, but we got a response with this data: Id=%s"
                     (res.Id.ToString())
             )
+
+    [<Test>]
+    member __.``End2End test of a correct interaction returning balance successfully``() =
+        let balanceResponse = "{\"id\": 0, \"result\": {\"confirmed\": 12345, \"unconfirmed\": 6789}}"
+        let serverVersionResponse = "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":[\"Fulcrum 2.1.1\",\"1.4\"]}"
+
+        let listener = new Sockets.TcpListener(IPAddress.IPv6Loopback, 0)
+        listener.Server.SetSocketOption(Sockets.SocketOptionLevel.IPv6,
+                                        Sockets.SocketOptionName.IPv6Only, false)
+        listener.Start()
+        let port = uint32 (listener.LocalEndpoint :?> IPEndPoint).Port
+
+        let serverAsync = async {
+            try
+                let! firstClient = listener.AcceptTcpClientAsync() |> Async.AwaitTask
+                use firstStream = firstClient.GetStream()
+                use firstReader = new System.IO.StreamReader(firstStream)
+                let! _firstRequest = firstReader.ReadLineAsync() |> Async.AwaitTask
+                use firstWriter = new System.IO.StreamWriter(firstStream)
+                firstWriter.AutoFlush <- true
+                do! firstWriter.WriteLineAsync(serverVersionResponse) |> Async.AwaitTask
+
+                let! secondClient = listener.AcceptTcpClientAsync() |> Async.AwaitTask
+                use secondStream = secondClient.GetStream()
+                use secondReader = new System.IO.StreamReader(secondStream)
+                let! _secondRequest = secondReader.ReadLineAsync() |> Async.AwaitTask
+                use secondWriter = new System.IO.StreamWriter(secondStream)
+                secondWriter.AutoFlush <- true
+                do! secondWriter.WriteLineAsync(balanceResponse) |> Async.AwaitTask
+            with
+            | ex -> Console.Error.WriteLine (sprintf "Server Error: %s" (ex.ToString()))
+        }
+        let serverTask = serverAsync |> Async.StartAsTask
+
+        let jsonRpcClient = JsonRpcTcpClient("localhost", port)
+        let stratumClient = StratumClient(jsonRpcClient)
+
+        try
+            async {
+                let! version = stratumClient.ServerVersion "geewallet" (Version "1.4")
+                Assert.That(version, Is.EqualTo(Version "1.4"),
+                    sprintf "Expected protocol version 1.4 but got %s" (version.ToString()))
+                let! balance = stratumClient.BlockchainScriptHashGetBalance "someaddress"
+                Assert.That(balance.Result.Confirmed, Is.EqualTo(12345L),
+                    sprintf "Expected confirmed balance 12345 but got %d" balance.Result.Confirmed)
+                Assert.That(balance.Result.Unconfirmed, Is.EqualTo(6789L),
+                    sprintf "Expected unconfirmed balance 6789 but got %d" balance.Result.Unconfirmed)
+            }
+            |> Async.RunSynchronously
+        finally
+            listener.Stop()
+            serverTask.Wait(1000) |> ignore
 
