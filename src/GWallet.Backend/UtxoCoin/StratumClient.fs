@@ -129,7 +129,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
     let Serialize(req: Request): string =
         JsonConvert.SerializeObject(req, Formatting.None,
-                                    Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+                                    Marshalling.PascalCase2LowercasePlusUnderscoreStrictConversionSettings)
 
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): Async<'R*string> = async {
@@ -191,7 +191,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let deserializedValue =
             try
                 JsonConvert.DeserializeObject<'T>(resultTrimmed,
-                                                  Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+                                                  Marshalling.PascalCase2LowercasePlusUnderscoreStrictConversionSettings)
             with
             | :? Newtonsoft.Json.JsonSerializationException as serEx ->
                 let newEx = ElectrumServerReturningImproperJsonResponseException(failedDeserMsg, serEx)
