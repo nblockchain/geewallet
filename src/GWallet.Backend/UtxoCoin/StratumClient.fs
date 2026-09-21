@@ -18,23 +18,39 @@ type Request =
 
 type ServerVersionResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: array<string>;
     }
 
 type BlockchainScriptHashGetBalanceInnerResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Confirmed: Int64;
         Unconfirmed: Int64;
     }
 type BlockchainScriptHashGetBalanceResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: BlockchainScriptHashGetBalanceInnerResult
     }
 
 type BlockchainScriptHashListUnspentInnerResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         TxHash: string;
         TxPos: int;
         Value: Int64;
@@ -42,12 +58,20 @@ type BlockchainScriptHashListUnspentInnerResult =
     }
 type BlockchainScriptHashListUnspentResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: array<BlockchainScriptHashListUnspentInnerResult>
     }
 
 type BlockchainTransactionGetResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: string;
     }
@@ -55,36 +79,60 @@ type BlockchainTransactionGetResult =
 // DON'T DELETE, used in external projects
 type BlockchainTransactionIdFromPosResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string
+
         Id: int
         Result: string
     }
 
 type BlockchainEstimateFeeResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: decimal;
     }
 
 type BlockchainTransactionBroadcastResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: string;
     }
 
 type ErrorInnerResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Message: string;
         Code: int;
     }
 
 type ErrorResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Error: ErrorInnerResult;
     }
     
 type ErrorResultWithStringError =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string
+
         Id: int
         Error: string
     }
