@@ -11,12 +11,13 @@
     <Compile Include="FSharpUtil.fs" />
     <Compile Include="Shuffling.fs" />
     <Compile Include="StratumParsing.fs" />
+    <Compile Include="ElectrumEnd2End.fs" />
     <Compile Include="WarpWallet.fs" />
     <Compile Include="FaultTolerance.fs" />
     <Compile Include="ParallelizationAndOptimization.fs" />
     <Compile Include="AsyncCancellation.fs" />
     <Compile Include="CompoundBalanceCaching.fs" />
-    <Compile Include="ElectrumIntegrationTests.fs" />
+    <Compile Include="ElectrumServer.fs" />
     <Compile Include="Formatting.fs" />
     <Compile Include="ServerReference.fs" />
     <Compile Include="MarshallingData.fs" />
