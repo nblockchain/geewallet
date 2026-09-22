@@ -45,7 +45,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -90,7 +90,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -117,7 +117,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -142,7 +142,7 @@ jobs:
     - name: build in DEBUG mode
       run: .\make.bat
     - name: sanity check
-      run: .\make.bat sanitycheck
+      run: git clean -fdx && .\make.bat sanitycheck
     - name: unit tests
       run: .\make.bat check
     - name: re-build in STRICT mode
@@ -177,7 +177,7 @@ jobs:
     - name: build in DEBUG mode
       run: .\make.bat
     - name: sanity check
-      run: .\make.bat sanitycheck
+      run: git clean -fdx && .\make.bat sanitycheck
     - name: unit tests
       run: .\make.bat check
     - name: re-build in STRICT mode
@@ -204,7 +204,7 @@ jobs:
     - name: build in DEBUG mode
       run: .\make.bat
     - name: sanity check
-      run: .\make.bat sanitycheck
+      run: git clean -fdx && .\make.bat sanitycheck
     - name: unit tests
       run: .\make.bat check
     - name: re-build in STRICT mode
@@ -241,7 +241,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -268,7 +268,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -304,7 +304,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -338,7 +338,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -385,7 +385,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -430,7 +430,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -479,7 +479,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -505,7 +505,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -530,7 +530,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -566,7 +566,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
@@ -604,7 +604,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: make sanitycheck
+      run: git clean -fdx && make sanitycheck
     - name: unit tests
       run: make check
     - name: build in STRICT mode
