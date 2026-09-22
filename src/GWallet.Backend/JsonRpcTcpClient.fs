@@ -52,10 +52,12 @@ type JsonRpcTcpClient (host: string, port: uint32) =
             | Some ipAddressOption ->
                 match ipAddressOption with
                 | Some ipAddress ->
+#if !DEBUG
                     if ipAddress.ToString().StartsWith("127.0.0.") then
                         let msg = SPrintF2 "Server '%s' resolved to localhost IP '%s'" host (ipAddress.ToString())
                         return raise <| ServerNameResolvedToInvalidAddressException (msg)
                     else
+#endif
                         return ipAddress
                 | None   -> return raise <| ServerCannotBeResolvedException
                                                 (SPrintF1 "DNS host entry lookup resulted in no records for %s" host)
