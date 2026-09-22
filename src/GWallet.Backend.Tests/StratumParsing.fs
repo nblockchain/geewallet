@@ -90,12 +90,18 @@ type StratumParsing() =
         match ex, response with
         | Some ex, _ ->
             let jsonFragment = "blockchain.relayfee"
+            let exceptionTypeName = ex.GetType().Name
             Assert.That(
                 ex.Message.Contains jsonFragment,
                 sprintf
                     "Exception received (of type %s) didn't contain original JSON fragment '%s'"
-                    (ex.GetType().Name)
+                    exceptionTypeName
                     jsonFragment
+            )
+            let properlyTypedException = (exceptionTypeName <> "Exception")
+            Assert.That(
+                properlyTypedException,
+                Is.True
             )
         | None, None -> Assert.Fail "Impossible to get no response and no exception"
         | None, Some res ->
