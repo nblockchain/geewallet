@@ -89,14 +89,23 @@ type StratumParsing() =
             | exn -> Some exn
         match ex, response with
         | Some ex, _ ->
-            let jsonFragment = "blockchain.relayfee"
+            let responseType = "BlockchainScriptHashGetBalance"
+            let jsonFragmentInResponse = "blockchain.relayfee"
             let exceptionTypeName = ex.GetType().Name
+
             Assert.That(
-                ex.Message.Contains jsonFragment,
+                ex.Message.Contains responseType,
+                sprintf
+                    "Exception received (of type %s) didn't contain response type '%s' that the JSON has to conform to"
+                    exceptionTypeName
+                    responseType
+            )
+            Assert.That(
+                ex.Message.Contains jsonFragmentInResponse,
                 sprintf
                     "Exception received (of type %s) didn't contain original JSON fragment '%s'"
                     exceptionTypeName
-                    jsonFragment
+                    jsonFragmentInResponse
             )
             let properlyTypedException = (exceptionTypeName <> "Exception")
             Assert.That(
