@@ -34,6 +34,7 @@ jobs:
         sudo installer -pkg xamarin.ios-16.0.0.72.pkg -target /
         wget https://aka.ms/xamarin-android-commercial-d17-3-macos --output-document=xamarin.android-13.0.0.0.pkg
         sudo installer -pkg xamarin.android-13.0.0.0.pkg -target /
+        rm -f *.pkg
     - name: Check versions
       run: |
         mono --version
@@ -79,6 +80,8 @@ jobs:
         sudo installer -pkg xamarin.ios-16.0.0.72.pkg -target /
         wget https://aka.ms/xamarin-android-commercial-d17-3-macos --output-document=xamarin.android-13.0.0.0.pkg
         sudo installer -pkg xamarin.android-13.0.0.0.pkg -target /
+        rm -f *.pkg
+
     - name: Check versions
       run: |
         mono --version
