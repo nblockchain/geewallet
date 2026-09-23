@@ -74,7 +74,9 @@ type ElectrumEnd2End() =
                     exceptionTypeName
                     jsonFragmentInResponse
             )
-            let properlyTypedException = (exceptionTypeName <> "Exception")
+            let properlyTypedException =
+                (exceptionTypeName <> "Exception") &&
+                (not (exceptionTypeName.StartsWith "NullReference"))
             Assert.That(
                 properlyTypedException,
                 Is.True
