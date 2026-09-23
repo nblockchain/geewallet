@@ -57,6 +57,7 @@
     <Compile Include="AsyncCancellation.fs" />
     <Compile Include="Shuffling.fs" />
     <Compile Include="StratumParsing.fs" />
+    <Compile Include="ElectrumEnd2End.fs" />
     <Content Include="packages.config" />
     <EmbeddedResource Include="data\signedAndFormattedBtcTransaction.json" />
     <EmbeddedResource Include="data\signedAndFormattedSaiTransaction.json" />
@@ -75,7 +76,7 @@
     <EmbeddedResource Include="data\fullException.json" />
     <EmbeddedResource Include="data\fullException_unixLegacy.json" />
     <EmbeddedResource Include="data\fullException_windowsLegacy.json" />
-    <Compile Include="ElectrumIntegrationTests.fs" />
+    <Compile Include="ElectrumServer.fs" />
     <Compile Include="WarpWallet.fs" />
     <Compile Include="CompoundBalanceCaching.fs" />
     <Compile Include="Formatting.fs" />

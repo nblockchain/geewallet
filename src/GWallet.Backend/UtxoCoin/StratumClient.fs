@@ -18,23 +18,39 @@ type Request =
 
 type ServerVersionResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: array<string>;
     }
 
 type BlockchainScriptHashGetBalanceInnerResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Confirmed: Int64;
         Unconfirmed: Int64;
     }
 type BlockchainScriptHashGetBalanceResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: BlockchainScriptHashGetBalanceInnerResult
     }
 
 type BlockchainScriptHashListUnspentInnerResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         TxHash: string;
         TxPos: int;
         Value: Int64;
@@ -42,12 +58,20 @@ type BlockchainScriptHashListUnspentInnerResult =
     }
 type BlockchainScriptHashListUnspentResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: array<BlockchainScriptHashListUnspentInnerResult>
     }
 
 type BlockchainTransactionGetResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: string;
     }
@@ -55,36 +79,60 @@ type BlockchainTransactionGetResult =
 // DON'T DELETE, used in external projects
 type BlockchainTransactionIdFromPosResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string
+
         Id: int
         Result: string
     }
 
 type BlockchainEstimateFeeResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: decimal;
     }
 
 type BlockchainTransactionBroadcastResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Result: string;
     }
 
 type ErrorInnerResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Message: string;
         Code: int;
     }
 
 type ErrorResult =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string;
+
         Id: int;
         Error: ErrorInnerResult;
     }
     
 type ErrorResultWithStringError =
     {
+        // Required.Default means optional
+        [<JsonProperty(Required = Required.Default)>]
+        Jsonrpc: string
+
         Id: int
         Error: string
     }
@@ -129,7 +177,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
     let Serialize(req: Request): string =
         JsonConvert.SerializeObject(req, Formatting.None,
-                                    Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+                                    Marshalling.PascalCase2LowercasePlusUnderscoreStrictConversionSettings)
 
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): Async<'R*string> = async {
@@ -191,7 +239,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let deserializedValue =
             try
                 JsonConvert.DeserializeObject<'T>(resultTrimmed,
-                                                  Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+                                                  Marshalling.PascalCase2LowercasePlusUnderscoreStrictConversionSettings)
             with
             | :? Newtonsoft.Json.JsonSerializationException as serEx ->
                 let newEx = ElectrumServerReturningImproperJsonResponseException(failedDeserMsg, serEx)
