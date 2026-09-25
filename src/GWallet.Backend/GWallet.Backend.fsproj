@@ -83,5 +83,6 @@
     <PackageReference Include="JsonRpcSharp" Version="0.99.0--date20240303-0338.git-d673848">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
+    <PackageReference Include="DotNetEssentials" Version="1.6.1--date20220823-0234.git-14ad2d3" />
   </ItemGroup>
 </Project>

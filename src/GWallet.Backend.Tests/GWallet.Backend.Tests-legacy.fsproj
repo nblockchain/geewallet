@@ -76,6 +76,7 @@
     <EmbeddedResource Include="data\fullException.json" />
     <EmbeddedResource Include="data\fullException_unixLegacy.json" />
     <EmbeddedResource Include="data\fullException_windowsLegacy.json" />
+    <Compile Include="Config.fs" />
     <Compile Include="ElectrumServer.fs" />
     <Compile Include="WarpWallet.fs" />
     <Compile Include="CompoundBalanceCaching.fs" />
