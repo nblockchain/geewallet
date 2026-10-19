@@ -2790,6 +2790,21 @@
     "LTC": [
       {
         "ServerInfo": {
+          "NetworkPath": "electrum-ltc.ddns.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
           "NetworkPath": "backup.electrum-ltc.org",
           "ConnectionType": {
             "Encrypted": false,
@@ -3929,6 +3944,30 @@
       }
     ],
     "ETC": [
+      {
+        "ServerInfo": {
+          "NetworkPath": "ethereum-classic-mainnet.gateway.tatum.io",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "0xrpc.io/etc",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
       {
         "ServerInfo": {
           "NetworkPath": "rpc.etcinscribe.com",
