@@ -35,8 +35,8 @@ let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
 let BACKEND = "GWallet.Backend"
 
 #if !LEGACY_FRAMEWORK
-// format: X.Y (can't be X.Y.Z here
-let DOTNET_VERSION = "8.0"
+// format: X.Y (can't be X.Y.Z here)
+let DOTNET_VERSION = "6.0"
 
 let AllowUsingNewerVersionsOfDotNet() =
     Environment.SetEnvironmentVariable("DOTNET_ROLL_FORWARD", "major")
