@@ -11,6 +11,12 @@
     <OtherFlags>$(OtherFlags) /warnon:1182</OtherFlags>
     <OtherFlags>$(OtherFlags) /warnon:3218</OtherFlags>
   </PropertyGroup>
+
+  <!-- Ignore warning 'The target framework 'net6.0' is out of support and will not receive security updates in the future.' -->
+  <PropertyGroup>
+    <WarningsNotAsErrors>NETSDK1138</WarningsNotAsErrors>
+  </PropertyGroup>
+
   <PropertyGroup Condition=" '$(Configuration)' != 'Debug' ">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
