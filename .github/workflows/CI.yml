@@ -423,6 +423,251 @@ jobs:
     - name: integration tests
       run: make update-servers
 
+  linux26-github--dotnet-only:
+    runs-on: ubuntu-26.04
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+    - name: check runtime version(s)
+      run: dotnet --version
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+  linux26-github--dotnet-and-newmono:
+    runs-on: ubuntu-26.04
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+    - name: install last version of mono (Microsoft APT repositories)
+      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+    - name: install missing dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
+    - name: check runtime version(s)
+      run: mono --version; dotnet --version
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+  linux26-vanilla--stockmono-only:
+    runs-on: ubuntu-26.04
+    container:
+      image: "ubuntu:26.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+
+    - name: install basic dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl
+
+    # because even though some mono packages still exist in 26.04, some were removed e.g. fsharp & ca-certificates-mono
+    - name: add noble sources to grab mono packages from it
+      run: |
+        echo "deb http://archive.ubuntu.com/ubuntu noble universe" | sudo tee /etc/apt/sources.list.d/noble-universe.list
+        sudo apt update --yes
+
+    # NOTE: we need 'mono-gac' (no longer shipped in 26.04, grabbed from noble) installed *before*
+    # the 'fsharp' package: its postinst hook copies the F# framework files (FSharp.Core.dll,
+    # FSharp.Build.dll, Microsoft.FSharp.Targets, fsc.exe, fsi.exe...) into /usr/lib/mono/4.5/
+    # (the cli-common framework install), without which xbuild cannot build the F# projects
+    # (and 'fsharpi' is broken, too). We also pin 'mono-devel' to noble because the 26.04 one
+    # (mono 6.14) conflicts with the noble 'mono-xbuild' (mono 6.8) that the 'fsharp' pkg needs.
+    - name: install mono (grabbing mono-devel from noble sources)
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes --allow-downgrades mono-gac ca-certificates-mono mono-devel/noble
+    - name: install F# compiler and unit test runner
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: check runtime version(s)
+      run: mono --version
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+  linux26-vanilla--stockdotnet-only:
+    runs-on: ubuntu-26.04
+    container:
+      image: "ubuntu:26.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet10
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+  linux26-vanilla--stockdotnet-and-newmono:
+    runs-on: ubuntu-26.04
+    container:
+      image: "ubuntu:26.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet10
+    - name: install last version of mono (Microsoft APT repositories)
+      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+  linux26-vanilla--stockdotnet-and-stockmono:
+    runs-on: ubuntu-26.04
+    container:
+      image: "ubuntu:26.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet10 mono-xbuild
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+  linux26-vanilla--newmono-only:
+    runs-on: ubuntu-26.04
+    container:
+      image: "ubuntu:26.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install last version of mono (Microsoft APT repositories)
+      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: check runtime version(s)
+      run: mono --version
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
 
   linux22-github--dotnet-and-mono:
     runs-on: ubuntu-22.04
@@ -560,6 +805,13 @@ jobs:
     - linux24-vanilla--stockdotnet-only
     - linux24-vanilla--stockdotnet-and-stockmono
     - linux24-vanilla--stockdotnet-and-newmono
+    - linux26-github--dotnet-only
+    - linux26-github--dotnet-and-newmono
+    - linux26-vanilla--stockmono-only
+    - linux26-vanilla--newmono-only
+    - linux26-vanilla--stockdotnet-only
+    - linux26-vanilla--stockdotnet-and-stockmono
+    - linux26-vanilla--stockdotnet-and-newmono
     - linux22-github--dotnet-and-mono
     - linux22-github--dotnet-and-newmono
     - linux22-vanilla--stockmono-only
