@@ -538,6 +538,10 @@ match maybeTarget with
 
 | Some("run") ->
     let buildConfig = MakeAll None
+
+#if !LEGACY_FRAMEWORK
+    AllowUsingNewerVersionsOfDotNet()
+#endif
     RunFrontend buildConfig None
         |> ignore
 
