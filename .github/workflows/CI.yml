@@ -54,17 +54,6 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
-    - name: compile .fsx scripts
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   macOS--mono-only:
     runs-on: macOS-14
@@ -153,18 +142,6 @@ jobs:
       run: git clean -fdx && .\configure.bat && .\make.bat release
     - name: integration tests
       run: .\make update-servers
-    - name: compile .fsx scripts
-      shell: bash
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   windows--legacyFramework-only:
     runs-on: windows-2022
@@ -215,18 +192,6 @@ jobs:
       run: git clean -fdx && .\configure.bat && .\make.bat release
     - name: integration tests
       run: .\make update-servers
-    - name: compile .fsx scripts
-      shell: bash
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux24-github--dotnet-and-mono:
     runs-on: ubuntu-24.04
@@ -349,17 +314,6 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
-    - name: compile .fsx scripts
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux24-vanilla--stockdotnet-and-newmono:
     runs-on: ubuntu-24.04
@@ -396,17 +350,6 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
-    - name: compile .fsx scripts
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux24-vanilla--stockdotnet-and-stockmono:
     runs-on: ubuntu-24.04
@@ -441,17 +384,6 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
-    - name: compile .fsx scripts
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        # fsxc was built with .NET6.x
-        export DOTNET_ROLL_FORWARD=major
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux24-vanilla--newmono-only:
     runs-on: ubuntu-24.04

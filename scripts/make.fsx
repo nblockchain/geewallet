@@ -152,6 +152,44 @@ let PrintNugetVersion () =
             Console.WriteLine()
             Console.Out.Flush()
             failwith "nuget process' output contained errors ^"
+#else
+
+let BuildScripts() =
+    let rec FindFsxFiles (dir: DirectoryInfo): seq<FileInfo> =
+        seq {
+            for file in dir.EnumerateFiles("*.fsx") do
+                yield file
+            for subDir in dir.EnumerateDirectories() do
+                if subDir.Name <> ".git" &&
+                   subDir.Name <> "obj" &&
+                   subDir.Name <> "bin" &&
+                   subDir.Name <> "packages" then
+                    yield! (FindFsxFiles subDir)
+        }
+
+    let toolManifest = FileInfo (Path.Combine (FsxHelper.RootDir.FullName, ".config", "dotnet-tools.json"))
+    let rootManifest = FileInfo (Path.Combine (FsxHelper.RootDir.FullName, "dotnet-tools.json"))
+    if not toolManifest.Exists && not rootManifest.Exists then
+        Process.Execute(
+            { Command = "dotnet"; Arguments = "new tool-manifest" },
+            Echo.All
+        ).UnwrapDefault() |> ignore<string>
+
+    // we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+    Process.Execute(
+        { Command = "dotnet"; Arguments = "tool install fsxc --version 0.5.9.1" },
+        Echo.All
+    ).UnwrapDefault() |> ignore<string>
+
+    // fsxc was built with .NET6.x
+    AllowUsingNewerVersionsOfDotNet()
+
+    for fsxFile in FindFsxFiles FsxHelper.RootDir do
+        Process.Execute(
+            { Command = "dotnet"; Arguments = sprintf "fsxc %s" fsxFile.FullName },
+            Echo.All
+        ).UnwrapDefault() |> ignore<string>
+
 #endif
 
 let BuildSolution
@@ -332,6 +370,9 @@ match maybeTarget with
     MakeAll None |> ignore
 
 | Some("release") ->
+#if !LEGACY_FRAMEWORK
+    BuildScripts()
+#endif
     JustBuild BinaryConfig.Release None
 
 #if LEGACY_FRAMEWORK
