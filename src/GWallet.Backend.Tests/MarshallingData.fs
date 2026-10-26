@@ -16,23 +16,41 @@ module MarshallingData =
     let private executingAssembly = Assembly.GetExecutingAssembly()
     let private version = VersionHelper.CURRENT_VERSION
     let private binPath = executingAssembly.Location |> FileInfo
-    let private prjPath = Path.Combine(binPath.Directory.FullName, "..") |> DirectoryInfo
+    let private prjDir = Path.Combine(binPath.Directory.FullName, "..", "..", "..") |> DirectoryInfo
 
     let private RemoveJsonFormatting (jsonContent: string): string =
-        jsonContent.Replace("\r", String.Empty)
-                   .Replace("\n", String.Empty)
-                   .Replace("\t", String.Empty)
+        jsonContent
+            .Replace("\r\n", String.Empty)
+            .Replace("\n", String.Empty)
+            .Replace("\\r\\n", String.Empty)
+            .Replace("\\n", String.Empty)
+            .Replace("\t", String.Empty)
 
     let private InjectCurrentVersion (jsonContent: string): string =
         jsonContent.Replace("{version}", version)
 
+    let private NormalizePaths (jsonContent: string): string =
+        jsonContent.Replace("\\", "/")
+
+    let internal ThisProjPath =
+        NormalizePaths prjDir.FullName
+
     let private InjectCurrentDir (jsonContent: string): string =
-        jsonContent.Replace("{prjDirAbsolutePath}", prjPath.FullName.Replace("\\", "/"))
+        jsonContent.Replace("{prjDirAbsolutePath}", ThisProjPath)
+
+    let rec private TrimOutsideAndInside(str: string) =
+        let trimmed = str.Replace("  ", " ").Trim()
+        if trimmed = str then
+            trimmed
+        else
+            TrimOutsideAndInside trimmed
 
     let internal Sanitize =
         RemoveJsonFormatting
         >> InjectCurrentVersion
         >> InjectCurrentDir
+        >> NormalizePaths
+        >> TrimOutsideAndInside
 
     let private ReadEmbeddedResource resourceName =
         Fsdk.Misc.ExtractEmbeddedResourceFileContents resourceName
@@ -50,12 +68,6 @@ module MarshallingData =
     let RealExceptionExampleInJson =
         ReadEmbeddedResource "realException.json"
 
-    let RealExceptionUnixLegacyExampleInJson =
-        ReadEmbeddedResource "realException_unixLegacy.json"
-
-    let RealExceptionWindowsLegacyExampleInJson =
-        ReadEmbeddedResource "realException_windowsLegacy.json"
-
     let InnerExceptionExampleInJson =
         ReadEmbeddedResource "innerException.json"
 
@@ -65,81 +77,46 @@ module MarshallingData =
     let CustomFSharpExceptionExampleInJson =
         ReadEmbeddedResource "customFSharpException.json"
 
-    let CustomFSharpExceptionLegacyExampleInJson =
-        ReadEmbeddedResource "customFSharpException_legacy.json"
-
     let FullExceptionExampleInJson =
         ReadEmbeddedResource "fullException.json"
 
-    let FullExceptionUnixLegacyExampleInJson =
-        ReadEmbeddedResource "fullException_unixLegacy.json"
+    let SerializedExceptionsAreSame actualJsonString expectedJsonString (msg: string) =
+        let actualJson = JObject.Parse actualJsonString
+        Assert.That(actualJson, Is.Not.Null)
+        let expectedJson = JObject.Parse expectedJsonString
+        Assert.That(expectedJson, Is.Not.Null)
 
-    let FullExceptionWindowsLegacyExampleInJson =
-        ReadEmbeddedResource "fullException_windowsLegacy.json"
+        let fullDescPath = "Value.FullDescription"
+        let actualJsonToken = actualJson.SelectToken fullDescPath
+        Assert.That(actualJsonToken, Is.Not.Null)
+        let expectedJsonToken = expectedJson.SelectToken fullDescPath
+        Assert.That(expectedJsonToken, Is.Not.Null)
 
-    let rec TrimOutsideAndInside(str: string) =
-        let trimmed = str.Replace("  ", " ").Trim()
-        if trimmed = str then
-            trimmed
+        let actualFullDesc =
+            actualJsonToken.ToString()
+            |> Sanitize
+        let expectedFullDesc =
+            expectedJsonToken.ToString()
+            |> Sanitize
+
+        // old version of .NET6? (happens in stockdotnet6 CI lanes)
+        if actualFullDesc.Contains "of type" then
+            let expected =
+                expectedFullDesc.Replace(
+                    "CustomFSharpException: CustomFSharpException",
+                    "CustomFSharpException: Exception of type 'GWallet.Backend.Tests.CustomFSharpException' was thrown."
+                )
+            Assert.That(
+                TrimOutsideAndInside actualFullDesc,
+                Is.EqualTo (TrimOutsideAndInside expected),
+                msg
+            )
         else
-            TrimOutsideAndInside trimmed
-
-    let SerializedExceptionsAreSame actualJsonString expectedJsonString ignoreExMessage msg =
-
-        let actualJsonException = JObject.Parse actualJsonString
-        let expectedJsonException = JObject.Parse expectedJsonString
-
-        let fullBinaryFormPath = "Value.FullBinaryForm"
-        let tweakStackTraces () =
-
-            let fullBinaryFormBeginning = "AAEAAAD/////AQAA"
-            let stackTracePath = "Value.HumanReadableSummary.StackTrace"
-            let stackTraceFragment = "ExceptionMarshalling.fs"
-
-            let tweakStackTraceAndBinaryForm (jsonEx: JObject) (assertBinaryForm: bool) =
-                let stackTraceJToken = jsonEx.SelectToken stackTracePath
-                Assert.That(stackTraceJToken, Is.Not.Null, sprintf "Path %s not found in %s" stackTracePath (jsonEx.ToString()))
-                let initialStackTraceJToken = stackTraceJToken.ToString()
-                if initialStackTraceJToken.Length > 0 then
-                    Assert.That(initialStackTraceJToken, IsString.WhichContains stackTraceFragment,
-                                sprintf "comparing actual '%s' with expected '%s'" actualJsonString expectedJsonString)
-                    let endOfStackTrace = initialStackTraceJToken.Substring(initialStackTraceJToken.IndexOf stackTraceFragment)
-                    let tweakedEndOfStackTrace =
-                        endOfStackTrace
-                            .Replace(":line 42", ":41 ")
-                            .Replace(":line 41", ":41 ")
-                            .Replace(":line 65", ":64 ")
-                            .Replace(":line 64", ":64 ")
-                    stackTraceJToken.Replace (tweakedEndOfStackTrace |> JToken.op_Implicit)
-
-                let binaryFormToken = jsonEx.SelectToken fullBinaryFormPath
-                Assert.That(binaryFormToken, Is.Not.Null, sprintf "Path %s not found in %s" fullBinaryFormPath (jsonEx.ToString()))
-                let initialBinaryFormJToken = binaryFormToken.ToString()
-                if assertBinaryForm then
-                    Assert.That(initialBinaryFormJToken, IsString.StartingWith fullBinaryFormBeginning)
-                binaryFormToken.Replace (fullBinaryFormBeginning |> JToken.op_Implicit)
-
-            tweakStackTraceAndBinaryForm actualJsonException true
-            tweakStackTraceAndBinaryForm expectedJsonException false
-
-        tweakStackTraces()
-
-        // strangely enough, message would be different between linux_vanilla_dotnet6 and other dotnet6 configs (e.g. Windows, macOS, Linux-github)
-        if ignoreExMessage then
-            let exMessagePath = "Value.HumanReadableSummary.Message"
-            let actualMsgToken = actualJsonException.SelectToken exMessagePath
-            Assert.That(actualMsgToken, Is.Not.Null, sprintf "Path %s not found in %s" exMessagePath (actualJsonException.ToString()))
-            let expectedMsgToken = expectedJsonException.SelectToken exMessagePath
-            Assert.That(expectedMsgToken, Is.Not.Null, sprintf "Path %s not found in %s" exMessagePath (expectedJsonException.ToString()))
-            actualMsgToken.Replace(String.Empty |> JToken.op_Implicit)
-            expectedMsgToken.Replace(String.Empty |> JToken.op_Implicit)
-
-        let actualBinaryForm = (actualJsonException.SelectToken fullBinaryFormPath).ToString()
-        Assert.That(
-            TrimOutsideAndInside(actualJsonException.ToString()),
-            Is.EqualTo (TrimOutsideAndInside(expectedJsonException.ToString())),
-            msg + actualBinaryForm
-        )
+            Assert.That(
+                TrimOutsideAndInside actualFullDesc,
+                Is.EqualTo (TrimOutsideAndInside expectedFullDesc),
+                msg
+            )
 
         true
 
