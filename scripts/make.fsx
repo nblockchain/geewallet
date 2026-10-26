@@ -34,8 +34,15 @@ let UNIX_NAME = "gwallet"
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
 let BACKEND = "GWallet.Backend"
 
-// format: X.Y (can't be X.Y.Z here
-let DOTNET_VERSION = "8.0"
+#if !LEGACY_FRAMEWORK
+// this needs to match with <TargetFramework>foo</TargetFramework> (where `foo` can't be `netstandard2.0` because it's not a lib)
+let DOTNET_VERSION =
+    // format: X.Y (can't be X.Y.Z here)
+    "6.0"
+
+let AllowUsingNewerVersionsOfDotNet() =
+    Environment.SetEnvironmentVariable("DOTNET_ROLL_FORWARD", "major")
+#endif
 
 type BinaryConfig =
     | Debug
@@ -145,6 +152,44 @@ let PrintNugetVersion () =
             Console.WriteLine()
             Console.Out.Flush()
             failwith "nuget process' output contained errors ^"
+#else
+
+let BuildScripts() =
+    let rec FindFsxFiles (dir: DirectoryInfo): seq<FileInfo> =
+        seq {
+            for file in dir.EnumerateFiles("*.fsx") do
+                yield file
+            for subDir in dir.EnumerateDirectories() do
+                if subDir.Name <> ".git" &&
+                   subDir.Name <> "obj" &&
+                   subDir.Name <> "bin" &&
+                   subDir.Name <> "packages" then
+                    yield! (FindFsxFiles subDir)
+        }
+
+    let toolManifest = FileInfo (Path.Combine (FsxHelper.RootDir.FullName, ".config", "dotnet-tools.json"))
+    let rootManifest = FileInfo (Path.Combine (FsxHelper.RootDir.FullName, "dotnet-tools.json"))
+    if not toolManifest.Exists && not rootManifest.Exists then
+        Process.Execute(
+            { Command = "dotnet"; Arguments = "new tool-manifest" },
+            Echo.All
+        ).UnwrapDefault() |> ignore<string>
+
+    // we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+    Process.Execute(
+        { Command = "dotnet"; Arguments = "tool install fsxc --version 0.5.9.1" },
+        Echo.All
+    ).UnwrapDefault() |> ignore<string>
+
+    // fsxc was built with .NET6.x
+    AllowUsingNewerVersionsOfDotNet()
+
+    for fsxFile in FindFsxFiles FsxHelper.RootDir do
+        Process.Execute(
+            { Command = "dotnet"; Arguments = sprintf "fsxc %s" fsxFile.FullName },
+            Echo.All
+        ).UnwrapDefault() |> ignore<string>
+
 #endif
 
 let BuildSolution
@@ -325,6 +370,9 @@ match maybeTarget with
     MakeAll None |> ignore
 
 | Some("release") ->
+#if !LEGACY_FRAMEWORK
+    BuildScripts()
+#endif
     JustBuild BinaryConfig.Release None
 
 #if LEGACY_FRAMEWORK
@@ -390,7 +438,7 @@ match maybeTarget with
         ) |> FileInfo
 
     // somehow sometimes the binary is seen by NUnit as 6.0, while we already have a .NET8.0 (or newer) runtime
-    Environment.SetEnvironmentVariable("DOTNET_ROLL_FORWARD", "major")
+    AllowUsingNewerVersionsOfDotNet()
 #else
     // so that we get file names in stack traces
     Environment.SetEnvironmentVariable("MONO_ENV_OPTIONS", "--debug")
@@ -496,6 +544,10 @@ match maybeTarget with
 | Some "update-servers" ->
     let buildConfig = MakeAll None
     Directory.SetCurrentDirectory (GetPathToBackend())
+
+#if !LEGACY_FRAMEWORK
+    AllowUsingNewerVersionsOfDotNet()
+#endif
     let proc1 = RunFrontend buildConfig (Some "--update-servers-file")
     if proc1.ExitCode <> 0 then
         Environment.Exit proc1.ExitCode
