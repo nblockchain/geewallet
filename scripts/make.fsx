@@ -34,8 +34,12 @@ let UNIX_NAME = "gwallet"
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
 let BACKEND = "GWallet.Backend"
 
-// format: X.Y (can't be X.Y.Z here
-let DOTNET_VERSION = "8.0"
+#if !LEGACY_FRAMEWORK
+// this needs to match with <TargetFramework>foo</TargetFramework> (where `foo` can't be `netstandard2.0` because it's not a lib)
+let DOTNET_VERSION =
+    // format: X.Y (can't be X.Y.Z here)
+    "6.0"
+#endif
 
 type BinaryConfig =
     | Debug
