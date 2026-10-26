@@ -39,6 +39,9 @@ let BACKEND = "GWallet.Backend"
 let DOTNET_VERSION =
     // format: X.Y (can't be X.Y.Z here)
     "6.0"
+
+let AllowUsingNewerVersionsOfDotNet() =
+    Environment.SetEnvironmentVariable("DOTNET_ROLL_FORWARD", "major")
 #endif
 
 type BinaryConfig =
@@ -394,7 +397,7 @@ match maybeTarget with
         ) |> FileInfo
 
     // somehow sometimes the binary is seen by NUnit as 6.0, while we already have a .NET8.0 (or newer) runtime
-    Environment.SetEnvironmentVariable("DOTNET_ROLL_FORWARD", "major")
+    AllowUsingNewerVersionsOfDotNet()
 #else
     // so that we get file names in stack traces
     Environment.SetEnvironmentVariable("MONO_ENV_OPTIONS", "--debug")
@@ -500,6 +503,10 @@ match maybeTarget with
 | Some "update-servers" ->
     let buildConfig = MakeAll None
     Directory.SetCurrentDirectory (GetPathToBackend())
+
+#if !LEGACY_FRAMEWORK
+    AllowUsingNewerVersionsOfDotNet()
+#endif
     let proc1 = RunFrontend buildConfig (Some "--update-servers-file")
     if proc1.ExitCode <> 0 then
         Environment.Exit proc1.ExitCode
