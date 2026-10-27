@@ -89,6 +89,7 @@ module ElectrumClient =
             innerGetBalances
                 scriptHashes
                 {
+                    Jsonrpc = StratumClient.JsonRpcDefaultVersion
                     Unconfirmed = 0L
                     Confirmed = 0L
                 }

@@ -179,6 +179,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         JsonConvert.SerializeObject(req, Formatting.None,
                                     Marshalling.PascalCase2LowercasePlusUnderscoreStrictConversionSettings)
 
+    static member JsonRpcDefaultVersion = "2.0"
+
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): Async<'R*string> = async {
         let! rawResponse = jsonRpcClient.Request jsonRequest
