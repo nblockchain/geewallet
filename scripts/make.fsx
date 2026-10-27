@@ -673,8 +673,6 @@ match maybeTarget with
     Unix.ChangeMode(finalLauncherScriptInDestDir, "+x", false)
 
 | Some("run") ->
-    let buildConfig = MakeAll None
-
 #if !LEGACY_FRAMEWORK
     AllowUsingNewerVersionsOfDotNet()
 #endif
