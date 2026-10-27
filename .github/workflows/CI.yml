@@ -38,6 +38,11 @@ jobs:
         wget https://aka.ms/xamarin-android-commercial-d17-3-macos --output-document=xamarin.android-13.0.0.0.pkg
         sudo installer -pkg xamarin.android-13.0.0.0.pkg -target /
         rm -f *.pkg
+    - name: Install Android SDK 33
+      run: |
+        SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        yes | "$SDKMANAGER" --licenses
+        "$SDKMANAGER" "platforms;android-33" "build-tools;33.0.2" "platform-tools"
     - name: Check versions
       run: |
         mono --version
@@ -73,6 +78,11 @@ jobs:
         wget https://aka.ms/xamarin-android-commercial-d17-3-macos --output-document=xamarin.android-13.0.0.0.pkg
         sudo installer -pkg xamarin.android-13.0.0.0.pkg -target /
         rm -f *.pkg
+    - name: Install Android SDK 33
+      run: |
+        SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        yes | "$SDKMANAGER" --licenses
+        "$SDKMANAGER" "platforms;android-33" "build-tools;33.0.2" "platform-tools"
 
     - name: Check versions
       run: |
