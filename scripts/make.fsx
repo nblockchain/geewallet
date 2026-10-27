@@ -159,6 +159,7 @@ let NugetRestore (projectOrSolution: FileInfo) =
     | Error _ -> failwith "NuGet Restore failed ^"
     | _ -> ()
 
+#if LEGACY_FRAMEWORK
 let PrintNugetVersion () =
     if not (FsxHelper.NugetExe.Exists) then
         false
