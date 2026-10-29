@@ -110,14 +110,17 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: HACK to emulate mono uninstall
       run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
     - name: configure
       run: ./configure.sh
+    - name: Diagnostics
+      run: |
+        uname -m
+        which dotnet
+        dotnet --list-sdks
+        dotnet --version
+        dotnet --info
     - name: build in DEBUG mode
       run: make
     - name: sanity check
