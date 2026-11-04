@@ -51,3 +51,5 @@ type StratumParsing() =
         )
 
         Assert.That(ex.ErrorCode, Is.EqualTo None)
+
+

@@ -110,6 +110,10 @@ module Marshalling =
     let internal PascalCase2LowercasePlusUnderscoreConversionSettings =
         JsonSerializerSettings(ContractResolver = PascalCase2LowercasePlusUnderscoreContractResolver())
 
+    let internal PascalCase2LowercasePlusUnderscoreStrictConversionSettings =
+        JsonSerializerSettings(MissingMemberHandling = MissingMemberHandling.Error,
+                               ContractResolver = PascalCase2LowercasePlusUnderscoreContractResolver())
+
     let internal DefaultSettings =
         JsonSerializerSettings(MissingMemberHandling = MissingMemberHandling.Error,
                                ContractResolver = RequireAllPropertiesContractResolver(),
