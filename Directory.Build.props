@@ -8,4 +8,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
   </PropertyGroup>
+
+  <!-- TODO: remove this from master branch -->
+  <PropertyGroup>
+    <!-- "The target framework 'net6.0' is out of support and will not receive security updates in the future." -->
+    <WarningsNotAsErrors>NETSDK1138</WarningsNotAsErrors>
+  </PropertyGroup>
 </Project>

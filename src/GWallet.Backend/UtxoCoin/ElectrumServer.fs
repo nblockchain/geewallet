@@ -78,34 +78,37 @@ module ElectrumServerSeedList =
 
                 if serverProperties.Count < 2 then
                     failwith <| SPrintF2 "Unexpected property count in server %s: %i" fqdn serverProperties.Count
-                let port = UInt32.Parse serverProperties.[1].InnerText
+                let portStr = serverProperties.[1].InnerText
+                let parsedSuccessfully, port = UInt32.TryParse portStr
+                if parsedSuccessfully then
+                    if serverProperties.Count < 3 then
+                        failwith <| SPrintF3 "Unexpected property count in server %s:%i: %i" fqdn port serverProperties.Count
+                    let portType = serverProperties.[2].InnerText
 
-                if serverProperties.Count < 3 then
-                    failwith <| SPrintF3 "Unexpected property count in server %s:%i: %i" fqdn port serverProperties.Count
-                let portType = serverProperties.[2].InnerText
+                    let encrypted =
+                        match portType with
+                        | "ssl" -> true
+                        | "tcp" -> false
+                        | _ -> failwith <| SPrintF1 "Got new unexpected port type: %s" portType
+                    let privatePort =
+                        if encrypted then
+                            Some port
+                        else
+                            None
+                    let unencryptedPort =
+                        if encrypted then
+                            None
+                        else
+                            Some port
 
-                let encrypted =
-                    match portType with
-                    | "ssl" -> true
-                    | "tcp" -> false
-                    | _ -> failwith <| SPrintF1 "Got new unexpected port type: %s" portType
-                let privatePort =
-                    if encrypted then
-                        Some port
-                    else
-                        None
-                let unencryptedPort =
-                    if encrypted then
-                        None
-                    else
-                        Some port
-
-                yield
-                    {
-                        Fqdn = fqdn
-                        PrivatePort = privatePort
-                        UnencryptedPort = unencryptedPort
-                    }
+                    yield
+                        {
+                            Fqdn = fqdn
+                            PrivatePort = privatePort
+                            UnencryptedPort = unencryptedPort
+                        }
+                else
+                    Infrastructure.LogInfo (SPrintF2 "Ignored server '%s' for containing an invalid port number '%s'" fqdn portStr)
         } |> Seq.filter FilterCompatibleServer
 
     let private ExtractServerListFromElectrumJsonFile jsonContents =
