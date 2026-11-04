@@ -570,7 +570,7 @@ match maybeTarget with
     if not FsxHelper.NugetExe.Exists then
         MakeAll None |> ignore
 
-    let microsoftBuildLibVersion = "16.11.0"
+    let microsoftBuildLibVersion = "17.3.0"
     let pkgOutputDir = FsxHelper.NugetScriptsPackagesDir()
     Network.InstallNugetPackage
         FsxHelper.NugetExe
