@@ -36,6 +36,7 @@ let BACKEND = "GWallet.Backend"
 
 #if !LEGACY_FRAMEWORK
 // this needs to match with <TargetFramework>foo</TargetFramework> (where `foo` can't be `netstandard2.0` because it's not a lib)
+// and NOTE: please try to keep this in sync with CI.yml's DOTNET_VERSION constant
 let DOTNET_VERSION =
     // format: X.Y (can't be X.Y.Z here)
     "6.0"

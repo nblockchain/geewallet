@@ -10,7 +10,8 @@ on:
     - cron: "0 0 * * *"
 
 env:
-  DOTNET_VERSION: '8.0'
+  # please try to keep this in sync with make.fsx's DOTNET_VERSION constant
+  DOTNET_VERSION: '6.0'
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
