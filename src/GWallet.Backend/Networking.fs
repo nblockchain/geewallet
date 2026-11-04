@@ -19,9 +19,18 @@ type CloudFlareError =
 
 type AbnormalSocketError =
     | CannotAssignRequestedAddress = 99
+    | NetworkUnreachable = 101
     | ResourceTemporarilyUnavailable = 11
     | NameOrServiceNotKnown = -131073
     | NoDataFoundForRequestedName = 11004
+
+type internal NetworkUnreachableException =
+    inherit Exception
+
+    new(msg: string, innerException: Exception) =
+        { inherit Exception("Network or internet not available?: " + msg, innerException) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit Exception (info, context) }
 
 type internal UnhandledSocketException =
     inherit Exception
@@ -152,8 +161,12 @@ module Networking =
 
             elif socketException.ErrorCode = int SocketError.HostUnreachable then
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
-            elif socketException.ErrorCode = int SocketError.NetworkUnreachable then
-                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+
+            elif socketException.ErrorCode = int AbnormalSocketError.NetworkUnreachable ||
+                 // = 10051 according to https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.socketerror?view=net-10.0
+                 socketException.ErrorCode = int SocketError.NetworkUnreachable then
+                NetworkUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+
             elif socketException.ErrorCode = int SocketError.AddressNotAvailable then
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
             elif socketException.ErrorCode = int SocketError.NetworkDown then
