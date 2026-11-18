@@ -20,7 +20,7 @@ env:
 
 jobs:
   macOS--dotnet-and-mono:
-    runs-on: macOS-14
+    runs-on: macOS-15
     steps:
     - uses: actions/checkout@v1
       with:
@@ -57,7 +57,7 @@ jobs:
       run: make update-servers
 
   macOS--mono-only:
-    runs-on: macOS-14
+    runs-on: macOS-15
     steps:
     - uses: actions/checkout@v1
       with:
@@ -93,7 +93,7 @@ jobs:
       run: make update-servers
 
   macOS--dotnet-only:
-    runs-on: macOS-14
+    runs-on: macOS-15
     steps:
     - uses: actions/checkout@v1
       with:
