@@ -14,7 +14,7 @@ open System.Xml.Linq
 open System.Xml.XPath
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk, Version=0.6.0--date20230812-0646.git-2268d50"
+#r "nuget: Fsdk, Version=0.9.99--date20261118-1128.git-c7ee052"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -29,9 +29,9 @@ open Fsdk.Process
 open GWallet.Scripting
 
 #if LEGACY_FRAMEWORK
-#r "../.nuget/packages/Microsoft.Build.17.3.0/lib/net472/Microsoft.Build.dll"
+#r "../.nuget/packages/Microsoft.Build.17.8.43/lib/net472/Microsoft.Build.dll"
 #else
-#r "nuget: Microsoft.Build, Version=17.3.0"
+#r "nuget: Microsoft.Build, Version=17.8.43"
 #endif
 open Microsoft.Build.Construction
 
