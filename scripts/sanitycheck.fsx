@@ -29,6 +29,7 @@ open Fsdk.Process
 open GWallet.Scripting
 
 #if LEGACY_FRAMEWORK
+#r "../.nuget/packages/Microsoft.Build.Framework.17.8.43/lib/net472/Microsoft.Build.Framework.dll"
 #r "../.nuget/packages/Microsoft.Build.17.8.43/lib/net472/Microsoft.Build.dll"
 #else
 #r "nuget: Microsoft.Build, Version=17.8.43"

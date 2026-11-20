@@ -571,7 +571,18 @@ match maybeTarget with
         MakeAll None |> ignore
 
     let microsoftBuildLibVersion = "17.8.43"
+
     let pkgOutputDir = FsxHelper.NugetScriptsPackagesDir()
+
+    Network.InstallNugetPackage
+        FsxHelper.NugetExe
+        pkgOutputDir
+        // in v17.8.x of Microsoft.Build, it depends on "Microsoft.Build.Framework"
+        "Microsoft.Build.Framework"
+        (Some microsoftBuildLibVersion)
+        Echo.All
+    |> ignore
+
     Network.InstallNugetPackage
         FsxHelper.NugetExe
         pkgOutputDir
