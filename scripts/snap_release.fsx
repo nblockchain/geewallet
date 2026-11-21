@@ -15,7 +15,7 @@ open System.Xml.Linq
 open System.Xml.XPath
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk, Version=0.6.0--date20231031-0834.git-2737eea"
+#r "nuget: Fsdk, Version=0.9.99--date20261118-1128.git-c7ee052"
 #else
 #r "System.Configuration"
 open System.Configuration

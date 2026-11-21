@@ -6,7 +6,7 @@ open System.Linq
 open System.Diagnostics
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk, Version=0.6.0--date20230818-1152.git-83d671b"
+#r "nuget: Fsdk, Version=0.9.99--date20261118-1128.git-c7ee052"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -704,8 +704,19 @@ match maybeTarget with
     if not FsxHelper.NugetExe.Exists then
         MakeAll None |> ignore
 
-    let microsoftBuildLibVersion = "17.3.0"
+    let microsoftBuildLibVersion = "17.8.43"
+
     let pkgOutputDir = FsxHelper.NugetScriptsPackagesDir()
+
+    Network.InstallNugetPackage
+        FsxHelper.NugetExe
+        pkgOutputDir
+        // in v17.8.x of Microsoft.Build, it depends on "Microsoft.Build.Framework"
+        "Microsoft.Build.Framework"
+        (Some microsoftBuildLibVersion)
+        Echo.All
+    |> ignore
+
     Network.InstallNugetPackage
         FsxHelper.NugetExe
         pkgOutputDir

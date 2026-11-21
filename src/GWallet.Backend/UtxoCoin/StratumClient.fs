@@ -22,7 +22,7 @@ type ServerVersionResult =
         [<JsonProperty(Required = Required.Default)>]
         Jsonrpc: string;
 
-        Id: int;
+        Id: string;
         Result: array<string>;
     }
 
@@ -41,7 +41,7 @@ type BlockchainScriptHashGetBalanceResult =
         [<JsonProperty(Required = Required.Default)>]
         Jsonrpc: string;
 
-        Id: int;
+        Id: string;
         Result: BlockchainScriptHashGetBalanceInnerResult
     }
 
@@ -62,7 +62,7 @@ type BlockchainScriptHashListUnspentResult =
         [<JsonProperty(Required = Required.Default)>]
         Jsonrpc: string;
 
-        Id: int;
+        Id: string;
         Result: array<BlockchainScriptHashListUnspentInnerResult>
     }
 
@@ -72,7 +72,7 @@ type BlockchainTransactionGetResult =
         [<JsonProperty(Required = Required.Default)>]
         Jsonrpc: string;
 
-        Id: int;
+        Id: string;
         Result: string;
     }
 
@@ -83,7 +83,7 @@ type BlockchainTransactionIdFromPosResult =
         [<JsonProperty(Required = Required.Default)>]
         Jsonrpc: string
 
-        Id: int
+        Id: string
         Result: string
     }
 
@@ -93,7 +93,7 @@ type BlockchainEstimateFeeResult =
         [<JsonProperty(Required = Required.Default)>]
         Jsonrpc: string;
 
-        Id: int;
+        Id: string;
         Result: decimal;
     }
 
@@ -103,7 +103,7 @@ type BlockchainTransactionBroadcastResult =
         [<JsonProperty(Required = Required.Default)>]
         Jsonrpc: string;
 
-        Id: int;
+        Id: string;
         Result: string;
     }
 
@@ -123,7 +123,7 @@ type ErrorResult =
         [<JsonProperty(Required = Required.Default)>]
         Jsonrpc: string;
 
-        Id: int;
+        Id: string;
         Error: ErrorInnerResult;
     }
 
@@ -133,7 +133,7 @@ type ErrorResultWithStringError =
         [<JsonProperty(Required = Required.Default)>]
         Jsonrpc: string
 
-        Id: int
+        Id: string
         Error: string
     }
 
