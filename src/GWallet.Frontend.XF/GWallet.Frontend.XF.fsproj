@@ -2,6 +2,9 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <EnableDefaultEmbeddedResourceItems>true</EnableDefaultEmbeddedResourceItems>
+    <!-- Xamarin.Forms targets require TargetPath metadata that the F# SDK's generated
+         ILLink.Substitutions.xml resource lacks. This legacy frontend is not trimmed. -->
+    <DisableILLinkSubstitutions>true</DisableILLinkSubstitutions>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
