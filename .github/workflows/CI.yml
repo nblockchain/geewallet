@@ -422,6 +422,8 @@ jobs:
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+    - name: install GTK libs (dependency of GTK frontend)
+      run: sudo ./scripts/install_gtk_from_microsoft_deb_packages.sh
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -668,6 +670,8 @@ jobs:
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
     - name: install all dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
+    - name: install GTK libs (dependency of GTK frontend)
+      run: sudo ./scripts/install_gtk_from_microsoft_deb_packages.sh
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
