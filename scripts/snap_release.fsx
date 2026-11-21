@@ -154,7 +154,7 @@ Console.WriteLine (sprintf "About to start upload of release %s" gitTag)
 
 let loginMsgAdvice =
     "There was a problem trying to login with snapcraft, maybe the credentials expired?\r\n" +
-    "If that is the case, install it in the same way as in install_snapcraft.sh and perform 'snapcraft export-login snapcraft.login', then extract the contents of 'snapcraft.login' file"
+    "If that is the case, install it in the same way as in ci_linux_install_snapcraft.sh and perform 'snapcraft export-login snapcraft.login', then extract the contents of 'snapcraft.login' file"
 
 Process.Execute({ Command = "snapcraft"; Arguments = "login --with snapcraft.login" }, Echo.All)
        .Unwrap(loginMsgAdvice) |> ignore<string>

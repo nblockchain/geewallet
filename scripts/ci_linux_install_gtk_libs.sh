@@ -3,7 +3,7 @@ set -euxo pipefail
 
 # Use the configured repositories directly when they can satisfy GTK#'s dependencies
 # (e.g. Ubuntu 22.04). On 24.04/26.04, configure stable-focal with
-# install_mono_from_microsoft_deb_packages.sh before running this script.
+# ci_linux_install_mono_from_microsoft_deb_packages.sh before running this script.
 if apt-get --simulate install libgtk2.0-cil-dev > /dev/null 2>&1; then
     DEBIAN_FRONTEND=noninteractive apt install --yes libgtk2.0-cil-dev
     exit 0

@@ -248,7 +248,7 @@ jobs:
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
-      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+      run: sudo ./scripts/ci_linux_install_mono_from_microsoft_deb_packages.sh
     - name: check runtime version(s)
       run: mono --version; dotnet --version
     - name: configure
@@ -351,7 +351,7 @@ jobs:
     - name: install all dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet8
     - name: install last version of mono (Microsoft APT repositories)
-      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+      run: sudo ./scripts/ci_linux_install_mono_from_microsoft_deb_packages.sh
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -421,9 +421,9 @@ jobs:
     - name: install all dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
-      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+      run: sudo ./scripts/ci_linux_install_mono_from_microsoft_deb_packages.sh
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo ./scripts/install_gtk_libs.sh
+      run: sudo ./scripts/ci_linux_install_gtk_libs.sh
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -476,7 +476,7 @@ jobs:
       with:
         submodules: false
     - name: install last version of mono (Microsoft APT repositories)
-      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+      run: sudo ./scripts/ci_linux_install_mono_from_microsoft_deb_packages.sh
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: check runtime version(s)
@@ -599,7 +599,7 @@ jobs:
     - name: install all dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet10
     - name: install last version of mono (Microsoft APT repositories)
-      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+      run: sudo ./scripts/ci_linux_install_mono_from_microsoft_deb_packages.sh
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -667,11 +667,11 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install last version of mono (Microsoft APT repositories)
-      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+      run: sudo ./scripts/ci_linux_install_mono_from_microsoft_deb_packages.sh
     - name: install all dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo ./scripts/install_gtk_libs.sh
+      run: sudo ./scripts/ci_linux_install_gtk_libs.sh
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -726,11 +726,11 @@ jobs:
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
-      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+      run: sudo ./scripts/ci_linux_install_mono_from_microsoft_deb_packages.sh
     - name: check runtime version(s)
       run: mono --version; dotnet --version
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo ./scripts/install_gtk_libs.sh
+      run: sudo ./scripts/ci_linux_install_gtk_libs.sh
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
@@ -798,7 +798,7 @@ jobs:
     - name: install all dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
-      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+      run: sudo ./scripts/ci_linux_install_mono_from_microsoft_deb_packages.sh
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -807,7 +807,7 @@ jobs:
     - name: check runtime version(s)
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo ./scripts/install_gtk_libs.sh
+      run: sudo ./scripts/ci_linux_install_gtk_libs.sh
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
@@ -902,7 +902,7 @@ jobs:
     - name: Install snap tools
       run: |
         sudo apt update
-        ./scripts/install_snapcraft.sh
+        ./scripts/ci_linux_install_snapcraft.sh
 
     # hack to disable msbuild detection
     # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install msbuild,
@@ -959,7 +959,7 @@ jobs:
     - name: Install snap tools
       run: |
         sudo apt update
-        ./scripts/install_snapcraft.sh
+        ./scripts/ci_linux_install_snapcraft.sh
 
     # hack to disable msbuild detection
     # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install msbuild,
