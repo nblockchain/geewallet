@@ -1,8 +1,5 @@
 <Project>
   <PropertyGroup>
-    <!-- SDK-built libraries are also consumed by Mono's legacy F# compiler via
-         xbuild, which cannot read compressed F# signature/optimization metadata. -->
-    <CompressMetadata>false</CompressMetadata>
     <OtherFlags>$(OtherFlags) --warnon:0193</OtherFlags>
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>
     <OtherFlags>$(OtherFlags) --warnon:3218</OtherFlags>
