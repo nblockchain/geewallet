@@ -829,30 +829,8 @@ jobs:
     container:
       image: "ubuntu:22.04"
     needs:
-    - linux24-github--dotnet-and-mono
-    - linux24-github--dotnet-and-newmono
-    - linux24-vanilla--stockmono-only
-    - linux24-vanilla--newmono-only
-    - linux24-vanilla--stockdotnet-only
-    - linux24-vanilla--stockdotnet-and-stockmono
-    - linux24-vanilla--stockdotnet-and-newmono
-    - linux26-github--dotnet-only
-    - linux26-github--dotnet-and-newmono
-    - linux26-vanilla--stockmono-only
-    - linux26-vanilla--newmono-only
-    - linux26-vanilla--stockdotnet-only
-    - linux26-vanilla--stockdotnet-and-stockmono
-    - linux26-vanilla--stockdotnet-and-newmono
-    - linux22-github--dotnet-and-mono
-    - linux22-github--dotnet-and-newmono
-    - linux22-vanilla--stockmono-only
-    - linux22-vanilla--newmono-only
-    - windows--dotnet-and-legacyFramework
-    - windows--legacyFramework-only
-    - windows--dotnet-only
-    - macOS--dotnet-and-mono
-    - macOS--mono-only
-    - macOS--dotnet-only
+    - snap_pkg
+    - snap_pkg_beta
 
     steps:
     - uses: actions/checkout@v1
@@ -883,7 +861,30 @@ jobs:
   snap_pkg:
 
     needs:
-    - conventions
+    - linux24-github--dotnet-and-mono
+    - linux24-github--dotnet-and-newmono
+    - linux24-vanilla--stockmono-only
+    - linux24-vanilla--newmono-only
+    - linux24-vanilla--stockdotnet-only
+    - linux24-vanilla--stockdotnet-and-stockmono
+    - linux24-vanilla--stockdotnet-and-newmono
+    - linux26-github--dotnet-only
+    - linux26-github--dotnet-and-newmono
+    - linux26-vanilla--stockmono-only
+    - linux26-vanilla--newmono-only
+    - linux26-vanilla--stockdotnet-only
+    - linux26-vanilla--stockdotnet-and-stockmono
+    - linux26-vanilla--stockdotnet-and-newmono
+    - linux22-github--dotnet-and-mono
+    - linux22-github--dotnet-and-newmono
+    - linux22-vanilla--stockmono-only
+    - linux22-vanilla--newmono-only
+    - windows--dotnet-and-legacyFramework
+    - windows--legacyFramework-only
+    - windows--dotnet-only
+    - macOS--dotnet-and-mono
+    - macOS--mono-only
+    - macOS--dotnet-only
 
     runs-on: ubuntu-22.04
     steps:
@@ -940,7 +941,30 @@ jobs:
   snap_pkg_beta:
 
     needs:
-    - conventions
+    - linux24-github--dotnet-and-mono
+    - linux24-github--dotnet-and-newmono
+    - linux24-vanilla--stockmono-only
+    - linux24-vanilla--newmono-only
+    - linux24-vanilla--stockdotnet-only
+    - linux24-vanilla--stockdotnet-and-stockmono
+    - linux24-vanilla--stockdotnet-and-newmono
+    - linux26-github--dotnet-only
+    - linux26-github--dotnet-and-newmono
+    - linux26-vanilla--stockmono-only
+    - linux26-vanilla--newmono-only
+    - linux26-vanilla--stockdotnet-only
+    - linux26-vanilla--stockdotnet-and-stockmono
+    - linux26-vanilla--stockdotnet-and-newmono
+    - linux22-github--dotnet-and-mono
+    - linux22-github--dotnet-and-newmono
+    - linux22-vanilla--stockmono-only
+    - linux22-vanilla--newmono-only
+    - windows--dotnet-and-legacyFramework
+    - windows--legacyFramework-only
+    - windows--dotnet-only
+    - macOS--dotnet-and-mono
+    - macOS--mono-only
+    - macOS--dotnet-only
 
     runs-on: ubuntu-22.04
     steps:
