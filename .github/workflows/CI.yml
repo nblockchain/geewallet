@@ -888,6 +888,17 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
+    - name: Install .NET SDK for the legacy GTK build
+      id: snap_dotnet
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '8.0.x'
+    - name: Pin .NET SDK for this snap job
+      run: |
+        # SDK 8 supports our Fsdk scripts and the legacy Mono build. Installing
+        # it alone still lets dotnet select SDK 11, whose metadata breaks F# 4.
+        dotnet new globaljson --sdk-version "${{ steps.snap_dotnet.outputs.dotnet-version }}" --roll-forward latestPatch
+        dotnet --version
     - name: Install snap tools
       run: |
         sudo apt update
@@ -934,6 +945,17 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
+    - name: Install .NET SDK for the legacy GTK build
+      id: snap_dotnet
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '8.0.x'
+    - name: Pin .NET SDK for this snap job
+      run: |
+        # SDK 8 supports our Fsdk scripts and the legacy Mono build. Installing
+        # it alone still lets dotnet select SDK 11, whose metadata breaks F# 4.
+        dotnet new globaljson --sdk-version "${{ steps.snap_dotnet.outputs.dotnet-version }}" --roll-forward latestPatch
+        dotnet --version
     - name: Install snap tools
       run: |
         sudo apt update
